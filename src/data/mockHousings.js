@@ -1,7 +1,7 @@
 export const mockHousings = [
   {
     id: '1',
-    title: 'Belle maison avec jardin',
+    title: ' maison avec jardin',
     type: 'house',
     price: 1200,
     surface: 120,
@@ -77,7 +77,7 @@ export const mockHousings = [
   },
   {
     id: '2',
-    title: 'Chambre lumineuse en colocation',
+    title: 'Chambre lumineuse ',
     type: 'room',
     price: 450,
     surface: 18,
@@ -96,7 +96,7 @@ export const mockHousings = [
   },
   {
     id: '3',
-    title: 'Maison moderne avec piscine',
+    title: 'Maison avec piscine',
     type: 'house',
     price: 1800,
     surface: 180,
@@ -114,7 +114,7 @@ export const mockHousings = [
     createdAt: new Date('2024-02-10')
   },{
     id: '1',
-    title: 'Belle maison avec jardin',
+    title: 'Belle maison sans jardin',
     type: 'house',
     price: 1200,
     surface: 120,
@@ -133,7 +133,7 @@ export const mockHousings = [
   },
   {
     id: '2',
-    title: 'Chambre lumineuse en colocation',
+    title: 'Chambre en colocation',
     type: 'room',
     price: 450,
     surface: 18,
@@ -152,7 +152,7 @@ export const mockHousings = [
   },
   {
     id: '3',
-    title: 'Maison moderne avec piscine',
+    title: 'Maison moderne avec 2 piscines',
     type: 'house',
     price: 1800,
     surface: 180,

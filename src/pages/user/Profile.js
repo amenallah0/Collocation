@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   VStack,
@@ -24,50 +25,56 @@ import {
   FormLabel,
   Input,
   useDisclosure,
-  HStack
+  HStack,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { useAuth } from '../../hooks/useAuth';
 import { housingAPI, userAPI } from '../../services/api';
 import HousingCard from '../housing/HousingCard';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
+
+  // Définir tous les hooks d'état et de couleur avant les conditions
   const [myListings, setMyListings] = useState([]);
   const [favorites, setFavorites] = useState([]);
-  const toast = useToast();
   const [profileData, setProfileData] = useState({
-    username: user.displayName || '',
+    username: '',
     firstName: '',
     lastName: '',
-    email: user.email || '',
+    email: '',
     phone: ''
   });
 
+  // Couleurs adaptatives pour le mode sombre
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const labelColor = useColorModeValue('gray.600', 'gray.400');
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const listings = await housingAPI.getUserListings(user.uid);
-        const favs = await housingAPI.getUserFavorites(user.uid);
-        const userData = await userAPI.getUserProfile(user.uid);
-        setMyListings(listings);
-        setFavorites(favs);
-        if (userData) {
-          setProfileData(prev => ({
-            ...prev,
-            ...userData
-          }));
-        }
-      } catch (error) {
-        toast({
-          title: 'Erreur',
-          description: 'Impossible de charger vos données',
-          status: 'error',
-        });
-      }
-    };
-    fetchUserData();
-  }, [user.uid, toast]);
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Initialiser les données du profil quand l'utilisateur est disponible
+    setProfileData({
+      username: user.displayName || '',
+      firstName: '',
+      lastName: '',
+      email: user.email || '',
+      phone: ''
+    });
+  }, [user, navigate]);
+
+  // Ne rendre le composant que si l'utilisateur est connecté
+  if (!user) {
+    return null;
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -81,9 +88,10 @@ const Profile = () => {
     try {
       await userAPI.updateUserProfile(user.uid, profileData);
       toast({
-        title: 'Succès',
-        description: 'Profil mis à jour avec succès',
+        title: 'Profil mis à jour',
         status: 'success',
+        duration: 3000,
+        isClosable: true,
       });
       onClose();
     } catch (error) {
@@ -91,35 +99,42 @@ const Profile = () => {
         title: 'Erreur',
         description: 'Impossible de mettre à jour le profil',
         status: 'error',
+        duration: 5000,
+        isClosable: true,
       });
     }
   };
 
-  
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
-        <Box p={6} borderWidth="1px" borderRadius="lg" bg="white">
+        <Box 
+          p={6} 
+          borderWidth="1px" 
+          borderRadius="lg" 
+          bg={bgColor}
+          borderColor={borderColor}
+        >
           <HStack spacing={8} align="flex-start">
             <Avatar size="2xl" name={profileData.username} src={user.photoURL} />
             <VStack align="stretch" flex={1} spacing={4}>
-              <Heading size="lg">{profileData.username}</Heading>
+              <Heading size="lg" color={textColor}>{profileData.username}</Heading>
               <SimpleGrid columns={2} spacing={4}>
                 <Box>
-                  <Text fontWeight="bold">Prénom</Text>
-                  <Text>{profileData.firstName || '-'}</Text>
+                  <Text fontWeight="bold" color={labelColor}>Prénom</Text>
+                  <Text color={textColor}>{profileData.firstName || '-'}</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold">Nom</Text>
-                  <Text>{profileData.lastName || '-'}</Text>
+                  <Text fontWeight="bold" color={labelColor}>Nom</Text>
+                  <Text color={textColor}>{profileData.lastName || '-'}</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold">Email</Text>
-                  <Text>{profileData.email}</Text>
+                  <Text fontWeight="bold" color={labelColor}>Email</Text>
+                  <Text color={textColor}>{profileData.email}</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold">Téléphone</Text>
-                  <Text>{profileData.phone || '-'}</Text>
+                  <Text fontWeight="bold" color={labelColor}>Téléphone</Text>
+                  <Text color={textColor}>{profileData.phone || '-'}</Text>
                 </Box>
               </SimpleGrid>
               <Button colorScheme="blue" size="sm" onClick={onOpen} alignSelf="flex-start">
@@ -131,51 +146,66 @@ const Profile = () => {
 
         <Modal isOpen={isOpen} onClose={onClose}>
           <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Modifier le profil</ModalHeader>
+          <ModalContent bg={bgColor}>
+            <ModalHeader color={textColor}>Modifier le profil</ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
               <VStack spacing={4}>
                 <FormControl>
-                  <FormLabel>Nom d'utilisateur</FormLabel>
+                  <FormLabel color={labelColor}>Nom d'utilisateur</FormLabel>
                   <Input
                     name="username"
                     value={profileData.username}
                     onChange={handleInputChange}
+                    bg={bgColor}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Prénom</FormLabel>
+                  <FormLabel color={labelColor}>Prénom</FormLabel>
                   <Input
                     name="firstName"
                     value={profileData.firstName}
                     onChange={handleInputChange}
+                    bg={bgColor}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Nom</FormLabel>
+                  <FormLabel color={labelColor}>Nom</FormLabel>
                   <Input
                     name="lastName"
                     value={profileData.lastName}
                     onChange={handleInputChange}
+                    bg={bgColor}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel color={labelColor}>Email</FormLabel>
                   <Input
                     name="email"
                     value={profileData.email}
                     onChange={handleInputChange}
                     type="email"
+                    bg={bgColor}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Téléphone</FormLabel>
+                  <FormLabel color={labelColor}>Téléphone</FormLabel>
                   <Input
                     name="phone"
                     value={profileData.phone}
                     onChange={handleInputChange}
                     type="tel"
+                    bg={bgColor}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <Button
@@ -192,9 +222,9 @@ const Profile = () => {
 
         <Tabs colorScheme="blue" isFitted>
           <TabList>
-            <Tab>Mes annonces</Tab>
-            <Tab>Favoris</Tab>
-            <Tab>Messages</Tab>
+            <Tab color={textColor}>Mes annonces</Tab>
+            <Tab color={textColor}>Favoris</Tab>
+            <Tab color={textColor}>Messages</Tab>
           </TabList>
 
           <TabPanels>
