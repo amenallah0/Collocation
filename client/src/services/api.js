@@ -1,0 +1,61 @@
+import { publicApi, secureApi } from '../config/api.config';
+
+// Service API pour les logements
+export const housingAPI = {
+  getAll: () => secureApi.get('/housings'),
+  getHousingById: (id) => secureApi.get(`/housings/${id}`),
+  create: async (data, images) => {
+    const formData = new FormData();
+    
+    Object.keys(data).forEach(key => {
+      if (key !== 'images') {
+        formData.append(key, data[key]);
+      }
+    });
+    
+    if (images?.length > 0) {
+      images.forEach(image => {
+        formData.append('images', image);
+      });
+    }
+
+    return secureApi.post('/housings', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  update: async (id, data, images) => {
+    const formData = new FormData();
+    
+    Object.keys(data).forEach(key => {
+      if (key !== 'images') {
+        formData.append(key, data[key]);
+      }
+    });
+    
+    if (images?.length > 0) {
+      images.forEach(image => {
+        formData.append('images', image);
+      });
+    }
+
+    return secureApi.put(`/housings/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
+};
+
+// Service API pour les messages
+export const messageAPI = {
+  getAll: () => secureApi.get('/messages'),
+  getConversation: (id) => secureApi.get(`/messages/conversation/${id}`),
+  send: (data) => secureApi.post('/messages', data),
+  markAsRead: (id) => secureApi.put(`/messages/${id}/read`),
+  delete: (id) => secureApi.delete(`/messages/${id}`)
+};
+
+// Service API pour les utilisateurs
+export const userAPI = {
+  getProfile: (id) => secureApi.get(`/users/${id}`),
+  updateProfile: (id, data) => secureApi.put(`/users/${id}`, data),
+  deleteAccount: (id) => secureApi.delete(`/users/${id}`)
+};
