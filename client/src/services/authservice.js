@@ -3,26 +3,18 @@ import axios from 'axios';
 const API_URL_AUTH = 'http://localhost:5000/api/auth';
 const API_URL_USERS = 'http://localhost:5000/api/users';
 
-const register = async (userData) => {
+const login = async (email, password) => {
   try {
-    const response = await axios.post(`${API_URL_AUTH}/register`, userData);
-    if (response.data) {
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      localStorage.setItem('token', JSON.stringify(response.data.token));
-    }
+    const response = await axios.post(`${API_URL_AUTH}/login`, { email, password });
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-const login = async (email, password) => {
+const register = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL_AUTH}/login`, { email, password });
-    if (response.data) {
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    localStorage.setItem('token', response.data.token); // Retiré JSON.stringify()
-  }
+    const response = await axios.post(`${API_URL_AUTH}/register`, userData);
     return response.data;
   } catch (error) {
     throw error;

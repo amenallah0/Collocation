@@ -3,7 +3,7 @@ import { secureApi } from '../config/api.config';
 export const userService = {
   getUserData: async (userId) => {
     try {
-      const response = await secureApi.get(`/api/users/${userId}/data`);
+      const response = await secureApi.get(`/users/${userId}/data`);
       return response.data;
     } catch (error) {
       if (error.response?.status === 401) {

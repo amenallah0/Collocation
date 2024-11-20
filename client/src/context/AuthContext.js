@@ -15,7 +15,8 @@ const authReducer = (state, action) => {
     case 'LOGIN_SUCCESS':
       return {
         ...state,
-        user: action.payload,
+        user: action.payload.user,
+        token: action.payload.token,
         loading: false,
         error: null,
       };
@@ -33,6 +34,12 @@ const authReducer = (state, action) => {
         loading: false,
         error: null,
       };
+    case 'SET_USER':
+      return {
+        ...state,
+        user: action.payload,
+        loading: false,
+      };
     default:
       return state;
   }
@@ -40,21 +47,34 @@ const authReducer = (state, action) => {
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
-  const initialState = {
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    token: localStorage.getItem('token') || null, // Retiré JSON.parse()
-    loading: false,
+  const [state, dispatch] = useReducer(authReducer, {
+    user: null,
+    token: null,
+    loading: true,
     error: null,
-  };
+  });
 
-  const [state, dispatch] = useReducer(authReducer, initialState);
-
+  // Effet pour charger les données initiales
   useEffect(() => {
-    if (state.user && state.token) {
-      localStorage.setItem('user', JSON.stringify(state.user));
-      localStorage.setItem('token', JSON.stringify(state.token));
-    }
-  }, [state.user, state.token]);
+    const initAuth = () => {
+      const storedUser = localStorage.getItem('user');
+      const storedToken = localStorage.getItem('token');
+      
+      if (storedUser && storedToken) {
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: {
+            user: JSON.parse(storedUser),
+            token: storedToken
+          }
+        });
+      } else {
+        dispatch({ type: 'SET_USER', payload: null });
+      }
+    };
+    
+    initAuth();
+  }, []);
 
   const register = async (userData) => {
     try {
@@ -74,10 +94,19 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       const response = await authService.login(email, password);
-      dispatch({ 
-        type: 'LOGIN_SUCCESS', 
-        payload: { user: response.user, token: response.token }
+      
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('token', response.token);
+      
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          user: response.user,
+          token: response.token
+        }
       });
+      
+      navigate('/profile');
       return response;
     } catch (error) {
       dispatch({ type: 'LOGIN_FAIL', payload: error.message });

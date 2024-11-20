@@ -26,21 +26,45 @@ import {
   Input,
   useDisclosure,
   HStack,
-  useColorModeValue
+  useColorModeValue,
+  Center,
+  Spinner
 } from '@chakra-ui/react';
-import { useAuth } from '../../context/AuthContext';  // Mise à jour du chemin d'importimport { housingAPI, userAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import HousingCard from '../housing/HousingCard';
 import { userService } from '../../services/user.service';
 
 const Profile = () => {
-  const navigate = useNavigate();
   const { user, loading, updateUser } = useAuth();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const navigate = useNavigate();
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // Ajout des états pour les annonces et favoris
+  // États
   const [myListings, setMyListings] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [profileData, setProfileData] = useState(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user')) || {};
+    return {
+      username: storedUser.displayName || '',
+      firstName: storedUser.firstName || '',
+      lastName: storedUser.lastName || '',
+      email: storedUser.email || '',
+      phone: storedUser.phone || ''
+    };
+  });
+
+  // Couleurs adaptatives
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const labelColor = useColorModeValue('gray.600', 'gray.400');
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
 
   // Fonction pour charger les données de l'utilisateur
   const loadUserData = async () => {
@@ -68,23 +92,6 @@ const Profile = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/login');
-    }
-  }, [user, loading, navigate]);
-
-  const [profileData, setProfileData] = useState(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user')) || {};
-    return {
-      username: storedUser.displayName || '',
-      firstName: storedUser.firstName || '',
-      lastName: storedUser.lastName || '',
-      email: storedUser.email || '',
-      phone: storedUser.phone || ''
-    };
-  });
-
-  useEffect(() => {
     if (user) {
       setProfileData({
         username: user.displayName || '',
@@ -95,6 +102,14 @@ const Profile = () => {
       });
     }
   }, [user]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleUpdateProfile = async () => {
     try {
@@ -111,18 +126,10 @@ const Profile = () => {
 
       const updatedUser = await userService.updateProfile(userId, profileData);
       
-      // Mise à jour du contexte utilisateur
       updateUser({
         ...user,
         ...updatedUser
       });
-
-      // Mise à jour du localStorage
-      const storedUser = JSON.parse(localStorage.getItem('userData'));
-      localStorage.setItem('userData', JSON.stringify({
-        ...storedUser,
-        ...updatedUser
-      }));
 
       toast({
         title: 'Succès',
@@ -131,7 +138,7 @@ const Profile = () => {
         duration: 3000,
       });
       
-      onClose(); // Fermer le modal
+      onClose();
     } catch (error) {
       toast({
         title: 'Erreur',
@@ -142,33 +149,14 @@ const Profile = () => {
     }
   };
 
-  // Couleurs adaptatives
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const textColor = useColorModeValue('gray.800', 'white');
-  const labelColor = useColorModeValue('gray.600', 'gray.400');
-
-  // Gestionnaire de changement des inputs
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Afficher un loader pendant la vérification de l'authentification
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
-        <Box>Chargement...</Box>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
       </Container>
     );
-  }
-
-  // Ne rien rendre si l'utilisateur n'est pas connecté
-  if (!user) {
-    return null;
   }
 
   return (
