@@ -26,7 +26,7 @@ import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import HousingCard from './HousingCard';
 import { mockHousings } from '../../data/mockHousings';
 import { housingAPI } from '../../services/api';
-import { useToast } from '@chakra-ui/react';
+import { useToast,useColorModeValue } from '@chakra-ui/react';
 
 const HousingList = () => {
   const { isOpen, onToggle } = useDisclosure();
@@ -37,7 +37,7 @@ const HousingList = () => {
   const toast = useToast();
 
   const [tempFilters, setTempFilters] = useState({
-    filter: 'all',
+    type: 'all',
     priceRange: [0, 2000],
     surfaceRange: [0, 200],
     bedrooms: '',
@@ -45,7 +45,7 @@ const HousingList = () => {
   });
 
   const [appliedFilters, setAppliedFilters] = useState({
-    filter: 'all',
+    type: 'all',
     priceRange: [0, 2000],
     surfaceRange: [0, 200],
     bedrooms: '',
@@ -94,11 +94,11 @@ const HousingList = () => {
     };
 
     fetchHousings();
-  }, [sortOrder]);
+  }, [sortOrder, toast]);
 
   const resetFilters = () => {
     const defaultFilters = {
-      filter: 'all',
+      type: 'all',
       priceRange: [0, 2000],
       surfaceRange: [0, 200],
       bedrooms: '',
@@ -123,8 +123,8 @@ const HousingList = () => {
           housing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (housing.description && housing.description.toLowerCase().includes(searchTerm.toLowerCase()));
         
-        const matchesFilter = appliedFilters.filter === 'all' || 
-          housing.type.toLowerCase() === appliedFilters.filter.toLowerCase();
+        const matchesType = appliedFilters.type === 'all' || 
+          housing.type.toLowerCase() === appliedFilters.type.toLowerCase();
         
         const matchesGovernorate = appliedFilters.governorate === 'all' || 
           housing.location === appliedFilters.governorate;
@@ -141,7 +141,7 @@ const HousingList = () => {
           Number(housing.surface) <= appliedFilters.surfaceRange[1];
   
         return matchesSearch && 
-               matchesFilter && 
+               matchesType && 
                matchesGovernorate && 
                matchesBedrooms && 
                matchesPrice && 
@@ -157,12 +157,17 @@ const HousingList = () => {
             return new Date(b.createdAt) - new Date(a.createdAt);
         }
       });
-  }, [searchTerm, appliedFilters, sortOrder]);
+  }, [searchTerm, appliedFilters, sortOrder,mockHousings]);
+
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('brand.200', 'brand.700');
+  const inputBg = useColorModeValue('white', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'white');
 
   // Le reste du JSX reste identique
   return (
     <Container maxW="container.xl" py={8}>
-      <Heading mb={6}>Annonces de colocation</Heading>
+      <Heading mb={6} color={textColor}>Annonces de colocation</Heading>
       
       <VStack spacing={4} align="stretch">
         <HStack mb={2} spacing={4}>
@@ -170,23 +175,33 @@ const HousingList = () => {
             placeholder="Rechercher une annonce..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            bg={inputBg}
+            borderColor={borderColor}
+            _hover={{ borderColor: 'brand.400' }}
           />
           <Select
             w="200px"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
+            bg={inputBg}
+            borderColor={borderColor}
+            _hover={{ borderColor: 'brand.400' }}
           >
             <option value="date">Plus récentes</option>
             <option value="price-asc">Prix croissant</option>
             <option value="price-desc">Prix décroissant</option>
           </Select>
-          <Button rightIcon={isOpen ? <FaChevronUp /> : <FaChevronDown />} onClick={onToggle}>
+          <Button 
+            rightIcon={isOpen ? <FaChevronUp /> : <FaChevronDown />} 
+            onClick={onToggle}
+            colorScheme="brand"
+          >
             Filtres
           </Button>
         </HStack>
 
         <Collapse in={isOpen}>
-          <Box p={4} borderWidth="1px" borderRadius="lg" bg="white">
+          <Box p={4} borderWidth="1px" borderRadius="lg" bg={bgColor} borderColor={borderColor}>
             <VStack spacing={4} align="stretch">
               <HStack spacing={4}>
                 <Box flex="1">
@@ -272,10 +287,18 @@ const HousingList = () => {
               </Box>
 
               <HStack justify="flex-end" spacing={4} pt={4}>
-                <Button onClick={resetFilters} variant="outline">
+                <Button 
+                  onClick={resetFilters} 
+                  variant="outline"
+                  borderColor={borderColor}
+                  color={textColor}
+                >
                   Réinitialiser
                 </Button>
-                <Button onClick={applyFilters} colorScheme="blue">
+                <Button 
+                  onClick={applyFilters} 
+                  colorScheme="brand"
+                >
                   Appliquer les filtres
                 </Button>
               </HStack>
