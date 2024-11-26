@@ -33,7 +33,16 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  
+  housings: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Housing'
+  }],
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Housing'
+  }]
 });
 
 // Hash password before saving

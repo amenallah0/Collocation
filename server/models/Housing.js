@@ -6,11 +6,20 @@ const housingSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  description: {
+  type: {
     type: String,
-    required: true
+    required: true,
+    enum: ['house', 'room']
   },
   price: {
+    type: Number,
+    required: true
+  },
+  surface: {
+    type: Number,
+    required: true
+  },
+  bedrooms: {
     type: Number,
     required: true
   },
@@ -18,9 +27,21 @@ const housingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  description: {
+    type: String,
+    required: true
+  },
   images: [{
     type: String
   }],
+  coordinates: {
+    lat: Number,
+    lng: Number
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

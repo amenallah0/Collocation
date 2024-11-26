@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const housingRoutes = require('./routes/housingRoutes');
 const app = express();
 
 // Middleware
@@ -13,6 +14,7 @@ app.use(express.json());
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/housings', housingRoutes);
 
 // Connexion MongoDB
 mongoose.connect(process.env.MONGODB_URI)
