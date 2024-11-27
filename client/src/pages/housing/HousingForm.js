@@ -98,14 +98,17 @@ const HousingForm = () => {
         price: Number(formData.price) || 0,
         surface: Number(formData.surface) || 0,
         bedrooms: Number(formData.bedrooms) || 0,
+        coordinates: JSON.stringify(formData.coordinates),
         createdAt: new Date().toISOString()
       };
 
       console.log('[Form] Prepared data:', data);
 
+      const imagesToUpload = images.filter(img => img.file).map(img => img.file);
+      
       const response = await (id ? 
-        housingAPI.update(id, data, images.filter(img => img.file)) : 
-        housingAPI.create(data, images.filter(img => img.file))
+        housingAPI.update(id, data, imagesToUpload) : 
+        housingAPI.create(data, imagesToUpload)
       );
       console.log('[Form] Submission success:', response.data);
 
@@ -142,7 +145,15 @@ const HousingForm = () => {
             placeholder="Titre de l'annonce"
           />
         </FormControl>
-
+        <FormControl isRequired>
+          <FormLabel>Description</FormLabel>
+          <Input
+            name="description"
+            value={formData.description}
+            onChange={handleInputChange}
+            placeholder="Description de l'annonce"
+          />
+        </FormControl>
         <FormControl isRequired>
           <FormLabel>Type de bien</FormLabel>
           <Select

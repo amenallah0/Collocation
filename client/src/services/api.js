@@ -7,20 +7,23 @@ export const housingAPI = {
   create: async (data, images) => {
     const formData = new FormData();
     
+    if (images?.length > 0) {
+      images.forEach(image => {
+        formData.append('images', image.file);
+      });
+    }
+    
     Object.keys(data).forEach(key => {
-      if (key !== 'images') {
+      if (key === 'coordinates') {
+        formData.append(key, JSON.stringify(data[key]));
+      } else if (key !== 'images') {
         formData.append(key, data[key]);
       }
     });
-    
-    if (images?.length > 0) {
-      images.forEach(image => {
-        formData.append('images', image);
-      });
-    }
 
     return secureApi.post('/housings', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      Authorization: `Bearer ${localStorage.getItem('token')}`
     });
   },
   update: async (id, data, images) => {

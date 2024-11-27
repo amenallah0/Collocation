@@ -26,19 +26,38 @@ const housingController = {
 
   create: async (req, res) => {
     try {
+      // Log pour déboguer
+      console.log('Received request body:', req.body);
+      console.log('Received files:', req.files);
+
+      // Vérification de l'authentification
+      if (!req.userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
+      }
+
+      // Traitement des images
+      const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+
+      // Création du logement
       const housing = new Housing({
         ...req.body,
-        userId: req.userId
+        userId: req.userId,
+        images: imageUrls,
+        price: Number(req.body.price),
+        surface: Number(req.body.surface),
+        bedrooms: Number(req.body.bedrooms)
       });
+
       const savedHousing = await housing.save();
       
-      // Ajouter le logement à la liste des logements de l'utilisateur
+      // Mise à jour de l'utilisateur
       await User.findByIdAndUpdate(req.userId, {
         $push: { housings: savedHousing._id }
       });
 
       res.status(201).json(savedHousing);
     } catch (error) {
+      console.error('Error in housing creation:', error);
       res.status(500).json({ message: error.message });
     }
   },
