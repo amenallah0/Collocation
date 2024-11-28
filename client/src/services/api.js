@@ -2,7 +2,16 @@ import { publicApi, secureApi } from '../config/api.config';
 
 // Service API pour les logements
 export const housingAPI = {
-  getAll: () => secureApi.get('/housings'),
+  getAll: async () => {
+    try {
+      const response = await secureApi.get('/housings');
+      console.log('API Response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching housings:', error);
+      throw error;
+    }
+  },
   getHousingById: (id) => secureApi.get(`/housings/${id}`),
   create: async (data, images) => {
     const formData = new FormData();

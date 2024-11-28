@@ -36,18 +36,23 @@ const HousingList = () => {
   const [housings, setHousings] = useState([]);
   const toast = useToast();
 
+  // Définir des constantes pour les valeurs max
+  const MAX_PRICE = 200000;
+  const MAX_SURFACE = 1000;
+
+  // Initialiser les états avec les bonnes valeurs max
   const [tempFilters, setTempFilters] = useState({
     type: 'all',
-    priceRange: [0, 2000],
-    surfaceRange: [0, 200],
+    priceRange: [0, MAX_PRICE],
+    surfaceRange: [0, MAX_SURFACE],
     bedrooms: '',
     governorate: 'all'
   });
 
   const [appliedFilters, setAppliedFilters] = useState({
     type: 'all',
-    priceRange: [0, 2000],
-    surfaceRange: [0, 200],
+    priceRange: [0, MAX_PRICE],
+    surfaceRange: [0, MAX_SURFACE],
     bedrooms: '',
     governorate: 'all'
   });
@@ -77,11 +82,32 @@ const HousingList = () => {
 
   useEffect(() => {
     const fetchHousings = async () => {
+      setLoading(true);
       try {
         const response = await housingAPI.getAll();
-        const sortedHousings = sortHousings(response.data, sortOrder);
-        setHousings(sortedHousings);
+        console.log('API Response:', response);
+        
+        // Vérifier si response.data existe et est un tableau
+        const housingsData = Array.isArray(response) ? response : response.data;
+        
+        // Formater les données
+        const formattedHousings = housingsData.map(housing => ({
+          _id: housing._id,
+          title: housing.title || 'Sans titre',
+          description: housing.description || '',
+          type: housing.type || 'house',
+          price: Number(housing.price) || 0,
+          surface: Number(housing.surface) || 0,
+          bedrooms: Number(housing.bedrooms) || 0,
+          location: housing.location || '',
+          images: Array.isArray(housing.images) ? housing.images : [],
+          createdAt: new Date(housing.createdAt)
+        }));
+
+        console.log('Formatted housings:', formattedHousings);
+        setHousings(formattedHousings);
       } catch (error) {
+        console.error('Error fetching housings:', error);
         toast({
           title: 'Erreur',
           description: 'Impossible de charger les annonces',
@@ -94,13 +120,13 @@ const HousingList = () => {
     };
 
     fetchHousings();
-  }, [sortOrder, toast]);
+  }, [toast]);
 
   const resetFilters = () => {
     const defaultFilters = {
       type: 'all',
-      priceRange: [0, 2000],
-      surfaceRange: [0, 200],
+      priceRange: [0, MAX_PRICE],
+      surfaceRange: [0, MAX_SURFACE],
       bedrooms: '',
       governorate: 'all'
     };
@@ -116,15 +142,14 @@ const HousingList = () => {
   };
 
   const displayedHousings = useMemo(() => {
-    // Start with mockHousings array
-    return mockHousings
+    return housings
       .filter(housing => {
         const matchesSearch = !searchTerm || 
-          housing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (housing.description && housing.description.toLowerCase().includes(searchTerm.toLowerCase()));
+          housing.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          housing.description?.toLowerCase().includes(searchTerm.toLowerCase());
         
         const matchesType = appliedFilters.type === 'all' || 
-          housing.type.toLowerCase() === appliedFilters.type.toLowerCase();
+          housing.type === appliedFilters.type;
         
         const matchesGovernorate = appliedFilters.governorate === 'all' || 
           housing.location === appliedFilters.governorate;
@@ -157,7 +182,7 @@ const HousingList = () => {
             return new Date(b.createdAt) - new Date(a.createdAt);
         }
       });
-  }, [searchTerm, appliedFilters, sortOrder,mockHousings]);
+  }, [housings, searchTerm, appliedFilters, sortOrder]);
 
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('brand.200', 'brand.700');
@@ -248,8 +273,8 @@ const HousingList = () => {
                 <Text mb={2}>Prix (€/mois)</Text>
                 <RangeSlider
                   min={0}
-                  max={2000}
-                  step={50}
+                  max={MAX_PRICE}
+                  step={1000}
                   value={tempFilters.priceRange}
                   onChange={(value) => setTempFilters({...tempFilters, priceRange: value})}
                 >
@@ -269,7 +294,7 @@ const HousingList = () => {
                 <Text mb={2}>Surface (m²)</Text>
                 <RangeSlider
                   min={0}
-                  max={200}
+                  max={MAX_SURFACE}
                   step={10}
                   value={tempFilters.surfaceRange}
                   onChange={(value) => setTempFilters({...tempFilters, surfaceRange: value})}
@@ -309,13 +334,13 @@ const HousingList = () => {
         {loading ? (
           <Box p={4} textAlign="center">Chargement des annonces...</Box>
         ) : displayedHousings.length === 0 ? (
-          <Box p={4} textAlign="center">Aucune annonce ne correspond à vos critères</Box>
+          <Box p={4} textAlign="center">Aucune annonce disponible</Box>
         ) : (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {displayedHousings.map((housing, index) => (
+            {displayedHousings.map((housing) => (
               <HousingCard 
-                key={housing._id || `housing-${index}`} 
-                housing={housing} 
+                key={housing._id}
+                housing={housing}
               />
             ))}
           </SimpleGrid>

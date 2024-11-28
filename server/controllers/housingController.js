@@ -26,19 +26,20 @@ const housingController = {
 
   create: async (req, res) => {
     try {
-      // Log pour déboguer
       console.log('Received request body:', req.body);
       console.log('Received files:', req.files);
 
-      // Vérification de l'authentification
       if (!req.userId) {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      // Traitement des images
-      const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+      if (!req.files || req.files.length === 0) {
+        console.log('No files uploaded');
+      }
 
-      // Création du logement
+      const imageUrls = req.files ? req.files.map(file => `/uploads/housings/${file.filename}`) : [];
+      console.log('Image URLs:', imageUrls);
+
       const housing = new Housing({
         ...req.body,
         userId: req.userId,
@@ -48,9 +49,11 @@ const housingController = {
         bedrooms: Number(req.body.bedrooms)
       });
 
+      console.log('Housing object before save:', housing);
+
       const savedHousing = await housing.save();
-      
-      // Mise à jour de l'utilisateur
+      console.log('Saved housing:', savedHousing);
+
       await User.findByIdAndUpdate(req.userId, {
         $push: { housings: savedHousing._id }
       });
@@ -88,7 +91,6 @@ const housingController = {
         return res.status(404).json({ message: 'Logement non trouvé' });
       }
       
-      // Retirer le logement de la liste des logements de l'utilisateur
       await User.findByIdAndUpdate(req.userId, {
         $pull: { housings: req.params.id }
       });

@@ -84,8 +84,6 @@ const HousingForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    console.log('[Form] Starting submission with:', formData);
-    console.log('[Form] Current user:', user);
 
     try {
       if (!user) {
@@ -98,19 +96,18 @@ const HousingForm = () => {
         price: Number(formData.price) || 0,
         surface: Number(formData.surface) || 0,
         bedrooms: Number(formData.bedrooms) || 0,
-        coordinates: JSON.stringify(formData.coordinates),
-        createdAt: new Date().toISOString()
+        coordinates: formData.coordinates
       };
 
-      console.log('[Form] Prepared data:', data);
+      // Préparer les images pour l'envoi
+      const imagesToUpload = images
+        .filter(img => img.file) // Ne prendre que les nouvelles images
+        .map(img => img.file);
 
-      const imagesToUpload = images.filter(img => img.file).map(img => img.file);
-      
       const response = await (id ? 
         housingAPI.update(id, data, imagesToUpload) : 
         housingAPI.create(data, imagesToUpload)
       );
-      console.log('[Form] Submission success:', response.data);
 
       toast({
         title: 'Succès',
@@ -121,7 +118,7 @@ const HousingForm = () => {
       
       navigate('/housings/' + (response?.data?._id || id));
     } catch (error) {
-      console.error('[Form] Submission error:', error);
+      console.error('Error:', error);
       toast({
         title: 'Erreur',
         description: error.message || 'Une erreur est survenue',

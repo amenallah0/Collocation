@@ -3,99 +3,96 @@ import {
     Image,
     Badge,
     Text,
-    VStack,
-    HStack,
-    IconButton,
+    AspectRatio,
     useColorModeValue
   } from '@chakra-ui/react';
-  import { FaHeart, FaShare } from 'react-icons/fa';
-  import { Link as RouterLink } from 'react-router-dom';
+  import { useNavigate } from 'react-router-dom';
   
   const HousingCard = ({ housing }) => {
-    const {
-      id,
-      title,
-      price,
-      images,
-      type,
-      location,
-      isActive,
-      bedrooms,
-      surface
-    } = housing;
-  
-    const cardBg = useColorModeValue('white', 'gray.800');
-    const borderColor = useColorModeValue('gray.200', 'gray.700');
-  
+    const navigate = useNavigate();
+    const imageUrl = housing.images?.[0]
+      ? `http://localhost:5000${housing.images[0]}`
+      : 'https://via.placeholder.com/400x300?text=Pas+d%27image';
+
+    const handleClick = () => {
+      navigate(`/housings/${housing._id}`);
+    };
+
     return (
-        <Box
-          as={RouterLink}
-          to={`/housing/${housing.id}`}
-          borderWidth="1px"
-          borderRadius="lg"
-          overflow="hidden"
-          _hover={{ transform: 'scale(1.02)' }}
-          transition="transform 0.2s"
-        >
-        <Box position="relative">
+      <Box 
+        borderWidth="1px" 
+        borderRadius="lg" 
+        overflow="hidden"
+        bg={useColorModeValue('white', 'gray.800')}
+        cursor="pointer"
+        onClick={handleClick}
+        _hover={{ 
+          transform: 'translateY(-5px)', 
+          transition: 'transform 0.2s',
+          shadow: 'lg'
+        }}
+      >
+        <AspectRatio ratio={16 / 9}>
           <Image
-            src={images[0]}
-            alt={title}
-            height="200px"
-            width="100%"
+            src={imageUrl}
+            alt={housing.title}
             objectFit="cover"
+            width="100%"
+            height="100%"
+            fallback={
+              <Box 
+                height="100%" 
+                width="100%" 
+                bg="gray.100" 
+                display="flex" 
+                alignItems="center" 
+                justifyContent="center"
+              >
+                <Text color="gray.500">Image non disponible</Text>
+              </Box>
+            }
           />
-          <Badge
-            position="absolute"
-            top={2}
-            right={2}
-            colorScheme={isActive ? 'green' : 'red'}
+        </AspectRatio>
+
+        <Box p="6">
+          <Box d="flex" alignItems="baseline">
+            <Badge borderRadius="full" px="2" colorScheme="teal">
+              {housing.type === 'house' ? 'Maison' : 'Chambre'}
+            </Badge>
+            <Box
+              color="gray.500"
+              fontWeight="semibold"
+              letterSpacing="wide"
+              fontSize="xs"
+              textTransform="uppercase"
+              ml="2"
+            >
+              {housing.surface} m² • {housing.bedrooms} ch
+            </Box>
+          </Box>
+
+          <Box
+            mt="1"
+            fontWeight="semibold"
+            as="h4"
+            lineHeight="tight"
+            noOfLines={1}
           >
-            {isActive ? 'Disponible' : 'Indisponible'}
-          </Badge>
-        </Box>
-  
-        <Box p={4}>
-          <VStack align="stretch" spacing={2}>
-            <Text fontSize="xl" fontWeight="semibold" noOfLines={1}>
-              {title}
+            {housing.title}
+          </Box>
+
+          <Box>
+            <Text fontWeight="bold" fontSize="lg">
+              {housing.price}€
+              <Box as="span" color="gray.600" fontSize="sm" fontWeight="normal">
+                / mois
+              </Box>
             </Text>
-            
-            <Text color="blue.600" fontSize="2xl" fontWeight="bold">
-              {price}€/mois
-            </Text>
-  
-            <HStack spacing={4}>
-              <Badge>{type}</Badge>
-              <Text fontSize="sm">{surface}m²</Text>
-              <Text fontSize="sm">{bedrooms} ch.</Text>
-            </HStack>
-  
-            <Text fontSize="sm" color="gray.500">
-              {location}
-            </Text>
-  
-            <HStack justify="space-between">
-              <IconButton
-                icon={<FaHeart />}
-                variant="ghost"
-                aria-label="Favoris"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Logique pour ajouter aux favoris
-                }}
-              />
-              <IconButton
-                icon={<FaShare />}
-                variant="ghost"
-                aria-label="Partager"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Logique pour partager
-                }}
-              />
-            </HStack>
-          </VStack>
+          </Box>
+
+          <Box mt="2" color="gray.600" fontSize="sm">
+            {housing.location}
+          </Box>
         </Box>
       </Box>
     );
