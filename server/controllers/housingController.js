@@ -13,13 +13,22 @@ const housingController = {
 
   getById: async (req, res) => {
     try {
+      console.log('GetById - Received ID:', req.params.id);
+      
       const housing = await Housing.findById(req.params.id)
         .populate('userId', 'displayName email phone');
+      
+      console.log('GetById - Found housing:', housing);
+      
       if (!housing) {
+        console.log('GetById - Housing not found');
         return res.status(404).json({ message: 'Logement non trouvé' });
       }
+      
+      console.log('GetById - Sending response:', housing);
       res.json(housing);
     } catch (error) {
+      console.error('GetById - Error:', error);
       res.status(500).json({ message: error.message });
     }
   },

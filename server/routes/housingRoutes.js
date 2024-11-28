@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../middleware/uploadMiddleware');
 
 router.get('/', auth, housingController.getAll);
-router.get('/:id', auth, housingController.getById);
+router.get('/:id', housingController.getById);
 router.post('/', auth, upload.array('images', 5), housingController.create);
 router.put('/:id', auth, housingController.update);
 router.delete('/:id', auth, housingController.delete);

@@ -1,4 +1,7 @@
 import { publicApi, secureApi } from '../config/api.config';
+import axios from 'axios';
+
+const baseURL = 'http://localhost:5000/api';
 
 // Service API pour les logements
 export const housingAPI = {
@@ -12,28 +15,52 @@ export const housingAPI = {
       throw error;
     }
   },
-  getHousingById: (id) => secureApi.get(`/housings/${id}`),
-  create: async (data, images) => {
-    const formData = new FormData();
-    
-    if (images?.length > 0) {
-      images.forEach(image => {
-        formData.append('images', image.file);
+  getHousingById: async (id) => {
+    try {
+      console.log('API call - Getting housing with ID:', id);
+      const response = await publicApi.get(`/housings/${id}`);
+      console.log('API call - Response received:', response);
+      return response;
+    } catch (error) {
+      console.error('API call - Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
       });
+      throw error;
     }
-    
-    Object.keys(data).forEach(key => {
-      if (key === 'coordinates') {
-        formData.append(key, JSON.stringify(data[key]));
-      } else if (key !== 'images') {
-        formData.append(key, data[key]);
+  },
+  create: async (data, images) => {
+    try {
+      const formData = new FormData();
+      
+      // Ajouter les images au formData
+      if (images?.length > 0) {
+        images.forEach(image => {
+          formData.append('images', image);
+        });
       }
-    });
+      
+      // Ajouter les autres données
+      Object.keys(data).forEach(key => {
+        if (key === 'coordinates') {
+          formData.append(key, JSON.stringify(data[key]));
+        } else if (key !== 'images') {
+          formData.append(key, data[key]);
+        }
+      });
 
-    return secureApi.post('/housings', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      Authorization: `Bearer ${localStorage.getItem('token')}`
-    });
+      const response = await secureApi.post('/housings', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error creating housing:', error);
+      throw error;
+    }
   },
   update: async (id, data, images) => {
     const formData = new FormData();
@@ -53,6 +80,15 @@ export const housingAPI = {
     return secureApi.put(`/housings/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
+  },
+  getById: async (id) => {
+    try {
+      const response = await axios.get(`${baseURL}/housings/${id}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching housing:', error);
+      throw error;
+    }
   }
 };
 

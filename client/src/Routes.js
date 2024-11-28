@@ -21,7 +21,7 @@ const Routes = () => {
           </PrivateRoute>
         }
       />
-      <Route path="/housing/:id" element={<HousingDetail />} />
+      <Route path="/housings/:id" element={<HousingDetail />} />
       <Route
         path="/profile"
         element={

@@ -56,32 +56,46 @@ const HousingDetail = () => {
     onClose: onImageClose 
   } = useDisclosure();
 
+  const getImageUrl = (imagePath) => {
+    return imagePath ? `http://localhost:5000${imagePath}` : 'https://via.placeholder.com/400x300?text=Pas+d%27image';
+  };
+
+  const handlePrevImage = () => {
+    setSelectedImageIndex((prev) => 
+      prev === 0 ? housing.images.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setSelectedImageIndex((prev) => 
+      prev === housing.images.length - 1 ? 0 : prev + 1
+    );
+  };
+
   useEffect(() => {
     const fetchHousing = async () => {
       try {
-        if (!id) {
-          throw new Error('ID non défini');
-        }
-        const mockHousing = mockHousings.find(h => h.id === id);
-        if (mockHousing) {
-          setHousing(mockHousing);
-        } else {
-          throw new Error('Annonce non trouvée');
-        }
+        setLoading(true);
+        const response = await housingAPI.getHousingById(id);
+        console.log('Housing details:', response.data);
+        setHousing(response.data);
       } catch (error) {
+        console.error('Erreur lors du chargement:', error);
         toast({
           title: 'Erreur',
           description: 'Impossible de charger l\'annonce',
           status: 'error',
           duration: 5000,
         });
-        navigate('/');
       } finally {
         setLoading(false);
       }
     };
-    fetchHousing();
-  }, [id, toast, navigate]);
+
+    if (id) {
+      fetchHousing();
+    }
+  }, [id, toast]);
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -143,18 +157,6 @@ const HousingDetail = () => {
     }
   };
 
-  const handlePrevImage = () => {
-    setSelectedImageIndex((prev) => 
-      prev === 0 ? housing.images.length - 1 : prev - 1
-    );
-  };
-
-  const handleNextImage = () => {
-    setSelectedImageIndex((prev) => 
-      prev === housing.images.length - 1 ? 0 : prev + 1
-    );
-  };
-
   return (
     <Container maxW="container.xl" py={12}>
       <Box 
@@ -168,7 +170,7 @@ const HousingDetail = () => {
         <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }}>
           <Box p={0} position="relative" height={{ base: "300px", md: "500px" }}>
             <Image
-              src={housing.images[0]}
+              src={getImageUrl(housing.images[0])}
               alt={housing.title}
               w="100%"
               h="100%"
@@ -311,7 +313,7 @@ const HousingDetail = () => {
                 }}
               >
                 <Image
-                  src={img}
+                  src={getImageUrl(img)}
                   alt={`${housing.title} ${index + 2}`}
                   loading="lazy"
                 />
@@ -354,7 +356,7 @@ const HousingDetail = () => {
           <ModalCloseButton color="white" zIndex="popover" />
           <ModalBody p={0} position="relative">
             <Image
-              src={housing.images[selectedImageIndex]}
+              src={getImageUrl(housing.images[selectedImageIndex])}
               alt={`Image ${selectedImageIndex + 1}`}
               w="100%"
               h="auto"
