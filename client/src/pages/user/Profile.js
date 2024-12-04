@@ -255,6 +255,21 @@ const Profile = () => {
     }
   };
 
+  const handleFavoriteToggle = async (housingId) => {
+    try {
+      await housingAPI.toggleFavorite(housingId);
+      // Recharger les favoris
+      loadUserData();
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -529,7 +544,12 @@ const Profile = () => {
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                 {favorites.length > 0 ? (
                   favorites.map(favorite => (
-                    <HousingCard key={favorite._id} housing={favorite} />
+                    <HousingCard 
+                      key={favorite._id} 
+                      housing={favorite} 
+                      isFavorite={true}
+                      onFavoriteToggle={handleFavoriteToggle}
+                    />
                   ))
                 ) : (
                   <Text>Vous n'avez pas encore de favoris</Text>

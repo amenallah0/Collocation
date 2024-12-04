@@ -125,6 +125,32 @@ const housingController = {
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
+  },
+
+  toggleFavorite: async (req, res) => {
+    try {
+      const housingId = req.params.id;
+      const userId = req.userId;
+
+      const user = await User.findById(userId);
+      const isFavorite = user.favorites.includes(housingId);
+
+      if (isFavorite) {
+        // Retirer des favoris
+        await User.findByIdAndUpdate(userId, {
+          $pull: { favorites: housingId }
+        });
+      } else {
+        // Ajouter aux favoris
+        await User.findByIdAndUpdate(userId, {
+          $addToSet: { favorites: housingId }
+        });
+      }
+
+      res.json({ isFavorite: !isFavorite });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
   }
 };
 

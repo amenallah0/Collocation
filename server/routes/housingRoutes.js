@@ -9,5 +9,6 @@ router.get('/:id', housingController.getById);
 router.post('/', auth, upload.array('images', 5), housingController.create);
 router.put('/:id', auth, housingController.update);
 router.delete('/:id', auth, housingController.delete);
+router.post('/:id/favorite', auth, housingController.toggleFavorite);
 
 module.exports = router;

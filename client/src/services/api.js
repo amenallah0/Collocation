@@ -91,6 +91,15 @@ export const housingAPI = {
       console.error('Error deleting housing:', error);
       throw error;
     }
+  },
+  toggleFavorite: async (id) => {
+    try {
+      const response = await secureApi.post(`/housings/${id}/favorite`);
+      return response.data;
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      throw error;
+    }
   }
 
 };
