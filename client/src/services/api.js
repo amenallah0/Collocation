@@ -62,24 +62,16 @@ export const housingAPI = {
       throw error;
     }
   },
-  update: async (id, data, images) => {
-    const formData = new FormData();
-    
-    Object.keys(data).forEach(key => {
-      if (key !== 'images') {
-        formData.append(key, data[key]);
-      }
-    });
-    
-    if (images?.length > 0) {
-      images.forEach(image => {
-        formData.append('images', image);
-      });
+  update: async (id, data) => {
+    try {
+      console.log('Sending update request with data:', data);
+      const response = await secureApi.put(`/housings/${id}`, data);
+      console.log('Update response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating housing:', error);
+      throw error;
     }
-
-    return secureApi.put(`/housings/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
   },
   getById: async (id) => {
     try {

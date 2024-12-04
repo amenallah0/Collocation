@@ -76,16 +76,33 @@ const housingController = {
 
   update: async (req, res) => {
     try {
+      console.log('Update request body:', req.body);
+      console.log('Update request params:', req.params);
+      console.log('User ID:', req.userId);
+
       const housing = await Housing.findOneAndUpdate(
         { _id: req.params.id, userId: req.userId },
-        req.body,
-        { new: true }
+        {
+          title: req.body.title,
+          description: req.body.description,
+          price: Number(req.body.price),
+          surface: Number(req.body.surface),
+          bedrooms: Number(req.body.bedrooms),
+          type: req.body.type,
+          location: req.body.location
+        },
+        { new: true, runValidators: true }
       );
+
       if (!housing) {
-        return res.status(404).json({ message: 'Logement non trouvé' });
+        console.log('Housing not found or unauthorized');
+        return res.status(404).json({ message: 'Logement non trouvé ou non autorisé' });
       }
+
+      console.log('Updated housing:', housing);
       res.json(housing);
     } catch (error) {
+      console.error('Error updating housing:', error);
       res.status(500).json({ message: error.message });
     }
   },
