@@ -33,6 +33,8 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import HousingCard from '../housing/HousingCard';
 import { userService } from '../../services/user.service';
+import { CloseIcon } from '@chakra-ui/icons';
+import { housingAPI } from '../../services/api';
 
 const Profile = () => {
   const { user, loading, updateUser } = useAuth();
@@ -147,6 +149,35 @@ const Profile = () => {
         duration: 5000,
       });
     }
+  };
+
+  const handleDeleteListing = async (listingId, e) => {
+    // Empêcher la propagation du clic pour ne pas naviguer vers la page de détail
+    e.stopPropagation();
+    
+    try {
+      await housingAPI.delete(listingId);
+      setMyListings(prevListings => 
+        prevListings.filter(listing => listing._id !== listingId)
+      );
+      toast({
+        title: 'Succès',
+        description: 'Annonce supprimée avec succès',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
+  const handleListingClick = (listingId) => {
+    navigate(`/housings/${listingId}`);
   };
 
   if (loading) {
@@ -290,7 +321,32 @@ const Profile = () => {
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                 {myListings.length > 0 ? (
                   myListings.map(listing => (
-                    <HousingCard key={listing._id} housing={listing} />
+                    <Box 
+                      key={listing._id} 
+                      position="relative" 
+                      onClick={() => handleListingClick(listing._id)}
+                      cursor="pointer"
+                    >
+                      <Box
+                        position="absolute"
+                        top={2}
+                        right={2}
+                        zIndex={2}
+                      >
+                        <CloseIcon
+                          color="red.500"
+                          bg="white"
+                          rounded="full"
+                          p={1}
+                          w={6}
+                          h={6}
+                          cursor="pointer"
+                          onClick={(e) => handleDeleteListing(listing._id, e)}
+                          _hover={{ bg: 'red.50' }}
+                        />
+                      </Box>
+                      <HousingCard housing={listing} />
+                    </Box>
                   ))
                 ) : (
                   <Text>Vous n'avez pas encore d'annonces</Text>

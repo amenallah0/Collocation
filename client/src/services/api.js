@@ -89,7 +89,18 @@ export const housingAPI = {
       console.error('Error fetching housing:', error);
       throw error;
     }
+  },
+  
+  delete: async (id) => {
+    try {
+      const response = await secureApi.delete(`/housings/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting housing:', error);
+      throw error;
+    }
   }
+
 };
 
 // Service API pour les messages
