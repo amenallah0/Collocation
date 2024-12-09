@@ -26,10 +26,11 @@ import {
   IconButton
 } from '@chakra-ui/react';
 import { FaEnvelope, FaMapMarkerAlt, FaBed, FaRuler, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import { housingAPI, messageAPI } from '../../services/api';
+import { housingAPI } from '../../services/api';
 import Map from '../common/Map';
 import { useAuth } from '../../context/AuthContext';
 import { mockHousings } from '../../data/mockHousings';
+import { messageAPI } from '../../services/messageAPI';
 
 const HousingDetail = () => {
   const { id } = useParams();
@@ -135,24 +136,45 @@ const HousingDetail = () => {
   }
 
   const handleSendMessage = async () => {
-    try {
-      await messageAPI.sendMessage({
-        from: user.uid,
-        to: housing.userId,
-        housingId: id,
-        content: message,
+    if (!user) {
+      toast({
+        title: 'Erreur',
+        description: 'Vous devez être connecté pour envoyer un message',
+        status: 'error',
       });
+      navigate('/login');
+      return;
+    }
+
+    try {
+      console.log('Sending message with data:', {
+        to: housing.userId,
+        housingId: housing._id,
+        content: message
+      });
+
+      await messageAPI.sendMessage({
+        to: housing.userId,
+        housingId: housing._id,
+        content: message
+      });
+
       toast({
         title: 'Succès',
         description: 'Message envoyé avec succès',
         status: 'success',
+        duration: 5000,
       });
+      
+      setMessage('');
       onClose();
     } catch (error) {
+      console.error('Error in handleSendMessage:', error);
       toast({
         title: 'Erreur',
-        description: 'Impossible d\'envoyer le message',
+        description: error.message || 'Impossible d\'envoyer le message',
         status: 'error',
+        duration: 5000,
       });
     }
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -29,20 +29,32 @@ import {
   useColorModeValue,
   Center,
   Spinner,
-  IconButton
+  IconButton,
+  Badge,
+  Divider,
+  Icon,
+  Flex,
+  ModalFooter
 } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
 import HousingCard from '../housing/HousingCard';
 import { userService } from '../../services/user.service';
-import { CloseIcon } from '@chakra-ui/icons';
+import { CloseIcon, DeleteIcon } from '@chakra-ui/icons';
 import { housingAPI } from '../../services/api';
-import { FaEdit } from 'react-icons/fa';
+import { FaEdit, FaEnvelope, FaClock, FaHome, FaTrash } from 'react-icons/fa';
 import {
   NumberInput,
   NumberInputField,
   Select,
   Textarea,
 } from '@chakra-ui/react';
+import { messageAPI } from '../../services/messageAPI';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000', {
+  withCredentials: true,
+  transports: ['websocket', 'polling']
+}); // Remplacez par l'URL de votre serveur
 
 const Profile = () => {
   const { user, loading, updateUser } = useAuth();
@@ -73,6 +85,14 @@ const Profile = () => {
   // Ajouter ces états
   const [editingHousing, setEditingHousing] = useState(null);
   const { isOpen: isEditHousingOpen, onOpen: onEditHousingOpen, onClose: onEditHousingClose } = useDisclosure();
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const messagesEndRef = useRef(null);
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+  const messageContainerRef = useRef(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -270,6 +290,278 @@ const Profile = () => {
     }
   };
 
+  // Ajouter ce nouvel useEffect pour charger les messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!user) return;
+      
+      try {
+        const data = await messageAPI.getUserMessages();
+        setMessages(data);
+        
+        // Mettre à jour la conversation sélectionnée uniquement si la modal est ouverte
+        if (selectedConversation && isModalOpen) {
+          const updatedConversation = groupMessagesByConversation(data).find(
+            conv => conv.user._id === selectedConversation.user._id
+          );
+          if (updatedConversation) {
+            setSelectedConversation(updatedConversation);
+          }
+        }
+      } catch (error) {
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          status: 'error',
+          duration: 5000,
+        });
+      } finally {
+        setMessagesLoading(false);
+      }
+    };
+
+    fetchMessages();
+
+    // Écouter les nouveaux messages
+    socket.on('newMessage', (newMessage) => {
+      setMessages(prevMessages => {
+        // Vérifier si le message existe déjà
+        const messageExists = prevMessages.some(msg => 
+          msg._id === newMessage._id || 
+          (msg.content === newMessage.content && 
+           msg.from._id === newMessage.from._id && 
+           msg.createdAt === newMessage.createdAt)
+        );
+
+        if (messageExists) {
+          return prevMessages;
+        }
+
+        const updatedMessages = [...prevMessages, newMessage];
+        
+        if (selectedConversation) {
+          const isRelevantMessage = 
+            newMessage.from._id === selectedConversation.user._id || 
+            newMessage.to._id === selectedConversation.user._id;
+
+          if (isRelevantMessage) {
+            const conversations = groupMessagesByConversation(updatedMessages);
+            const updatedConversation = conversations.find(
+              conv => conv.user._id === selectedConversation.user._id
+            );
+            if (updatedConversation) {
+              setSelectedConversation(updatedConversation);
+            }
+          }
+        }
+        
+        return updatedMessages;
+      });
+    });
+
+    // Nettoyer l'écouteur lors du démontage
+    return () => {
+      socket.off('newMessage');
+    };
+  }, [selectedConversation]); // Dépendance à selectedConversation pour mettre à jour la bonne conversation
+
+  // Fonction pour formater la date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) {
+      return `Aujourd'hui à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (days === 1) {
+      return `Hier à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (days < 7) {
+      return `Il y a ${days} jours`;
+    } else {
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+  };
+
+  // Fonction pour grouper les messages par conversation
+  const groupMessagesByConversation = (messages) => {
+    const conversations = {};
+    
+    messages.forEach(msg => {
+      const otherId = msg.from._id === user._id ? msg.to._id : msg.from._id;
+      const otherUser = msg.from._id === user._id ? msg.to : msg.from;
+      
+      if (!conversations[otherId]) {
+        conversations[otherId] = {
+          user: otherUser,
+          messages: [],
+          lastMessage: null,
+          housing: msg.housingId
+        };
+      }
+      
+      conversations[otherId].messages.push(msg);
+      
+      if (!conversations[otherId].lastMessage || 
+          new Date(msg.createdAt) > new Date(conversations[otherId].lastMessage.createdAt)) {
+        conversations[otherId].lastMessage = msg;
+      }
+    });
+
+    // Log pour debug
+    console.log('Grouped conversations:', conversations);
+    
+    return Object.values(conversations);
+  };
+
+  const handleOpenConversation = (conversation) => {
+    setSelectedConversation(conversation);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseConversation = () => {
+    setIsModalOpen(false);
+    setSelectedConversation(null);
+  };
+
+  const handleReply = async () => {
+    if (!replyContent.trim()) return;
+
+    try {
+      const messageData = {
+        to: selectedConversation.user._id,
+        housingId: selectedConversation.housing._id,
+        content: replyContent,
+      };
+
+      // Envoyer le message via l'API
+      await messageAPI.sendMessage(messageData);
+      
+      // Ne pas ajouter le message ici car il sera reçu via le socket
+      setReplyContent('');
+      setShouldScrollToBottom(true);
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Gérer le défilement manuel
+  const handleScroll = (e) => {
+    const element = e.target;
+    const isScrolledNearBottom = 
+      element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+    
+    setShouldScrollToBottom(isScrolledNearBottom);
+  };
+
+  // Effet pour le défilement automatique lors de nouveaux messages
+  useEffect(() => {
+    if (selectedConversation) {
+      scrollToBottom();
+    }
+  }, [selectedConversation?.messages]);
+
+  // Ajouter la gestion de la suppression des messages
+  const handleDeleteMessage = async (messageId, e) => {
+    e.stopPropagation();
+    
+    try {
+      await messageAPI.deleteMessage(messageId);
+      
+      // Mettre à jour l'état local des messages
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg._id !== messageId)
+      );
+
+      // Mettre à jour la conversation sélectionnée si elle est ouverte
+      if (selectedConversation) {
+        setSelectedConversation(prev => ({
+          ...prev,
+          messages: prev.messages.filter(msg => msg._id !== messageId)
+        }));
+      }
+
+      toast({
+        title: 'Succès',
+        description: 'Message supprimé avec succès',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
+  // Ajouter l'écouteur pour les messages supprimés
+  useEffect(() => {
+    socket.on('messageDeleted', (messageId) => {
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg._id !== messageId)
+      );
+
+      if (selectedConversation) {
+        setSelectedConversation(prev => ({
+          ...prev,
+          messages: prev.messages.filter(msg => msg._id !== messageId)
+        }));
+      }
+    });
+
+    return () => {
+      socket.off('messageDeleted');
+    };
+  }, [selectedConversation]);
+
+  // Ajouter la fonction de suppression de conversation
+  const handleDeleteConversation = async (conversationUserId, e) => {
+    e.stopPropagation(); // Empêcher l'ouverture de la conversation
+
+    try {
+      await messageAPI.deleteConversation(conversationUserId);
+
+      // Mettre à jour l'état local
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => 
+          msg.from._id !== conversationUserId && msg.to._id !== conversationUserId
+        )
+      );
+
+      toast({
+        title: 'Succès',
+        description: 'Conversation supprimée avec succès',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -399,11 +691,21 @@ const Profile = () => {
           </ModalContent>
         </Modal>
 
-        <Tabs colorScheme="blue" isFitted>
-          <TabList>
+        <Tabs colorScheme="blue" isFitted variant="enclosed">
+          <TabList mb="1em">
             <Tab color={textColor}>Mes annonces</Tab>
             <Tab color={textColor}>Favoris</Tab>
-            <Tab color={textColor}>Messages</Tab>
+            <Tab>
+              <HStack>
+                <Icon as={FaEnvelope} />
+                <Text>Messages</Text>
+                {messages.length > 0 && (
+                  <Badge colorScheme="blue" borderRadius="full">
+                    {messages.length}
+                  </Badge>
+                )}
+              </HStack>
+            </Tab>
           </TabList>
 
           <TabPanels>
@@ -558,10 +860,185 @@ const Profile = () => {
             </TabPanel>
 
             <TabPanel>
-              <Text>Fonctionnalité messages à venir</Text>
+              <Box>
+                <Heading size="lg" mb={6}>Mes Conversations</Heading>
+                {messagesLoading ? (
+                  <Center p={8}>
+                    <Spinner size="xl" />
+                  </Center>
+                ) : messages.length === 0 ? (
+                  <Box 
+                    p={8} 
+                    textAlign="center" 
+                    borderWidth={1} 
+                    borderRadius="lg"
+                    borderStyle="dashed"
+                  >
+                    <Icon as={FaEnvelope} w={10} h={10} color="gray.400" mb={4} />
+                    <Text fontSize="lg" color="gray.500">
+                      Aucun message pour le moment
+                    </Text>
+                  </Box>
+                ) : (
+                  <VStack spacing={4} align="stretch">
+                    {groupMessagesByConversation(messages).map((conversation) => (
+                      <Flex
+                        key={conversation.user._id}
+                        p={4}
+                        borderWidth={1}
+                        borderRadius="lg"
+                        bg={bgColor}
+                        borderColor={borderColor}
+                        _hover={{ shadow: 'md' }}
+                        transition="all 0.2s"
+                        justify="space-between"
+                        align="center"
+                      >
+                        <HStack spacing={4} flex={1} onClick={() => handleOpenConversation(conversation)} cursor="pointer">
+                          <Avatar 
+                            size="md" 
+                            name={conversation.user.displayName}
+                            src={conversation.user.photoURL}
+                          />
+                          <Box>
+                            <Text fontWeight="bold" fontSize="lg">
+                              {conversation.user.displayName}
+                            </Text>
+                            <HStack spacing={2} color={labelColor}>
+                              <Icon as={FaHome} />
+                              <Text fontSize="sm">
+                                {conversation.housing ? (
+                                  conversation.housing.title || 'Titre non disponible'
+                                ) : (
+                                  'Annonce non disponible'
+                                )}
+                              </Text>
+                            </HStack>
+                          </Box>
+                        </HStack>
+                        <HStack spacing={4}>
+                          <Text fontSize="sm" color={labelColor}>
+                            {formatDate(conversation.lastMessage.createdAt)}
+                          </Text>
+                          <IconButton
+                            icon={<DeleteIcon />}
+                            colorScheme="red"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleDeleteConversation(conversation.user._id, e)}
+                            aria-label="Supprimer la conversation"
+                          />
+                        </HStack>
+                      </Flex>
+                    ))}
+                  </VStack>
+                )}
+              </Box>
             </TabPanel>
           </TabPanels>
         </Tabs>
+
+        {selectedConversation && (
+          <Modal 
+            isOpen={isModalOpen} 
+            onClose={handleCloseConversation}
+            scrollBehavior="inside"
+          >
+            <ModalOverlay />
+            <ModalContent maxH="80vh">
+              <ModalHeader>
+                Discussion avec {selectedConversation.user.displayName}
+              </ModalHeader>
+              <ModalCloseButton />
+              <ModalBody 
+                ref={messageContainerRef}
+                onScroll={handleScroll}
+                overflowY="auto" 
+                css={{
+                  '&::-webkit-scrollbar': {
+                    width: '4px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    width: '6px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: 'gray.300',
+                    borderRadius: '24px',
+                  },
+                }}
+              >
+                <VStack spacing={3} align="stretch" maxH="calc(70vh - 120px)">
+                  {selectedConversation.messages.map((msg) => (
+                    <Flex
+                      key={`${msg._id}-${msg.createdAt}`}
+                      justify={msg.from._id === user._id ? 'flex-end' : 'flex-start'}
+                      position="relative"
+                      role="group"
+                    >
+                      <Box
+                        position="relative"
+                        maxW="80%"
+                        p={3}
+                        borderRadius="lg"
+                        bg={msg.from._id === user._id ? 'blue.500' : 'gray.100'}
+                        color={msg.from._id === user._id ? 'white' : 'gray.800'}
+                        _hover={{ '& > button': { opacity: 1 } }}
+                      >
+                        {msg.from._id === user._id && (
+                          <IconButton
+                            icon={<DeleteIcon />}
+                            size="xs"
+                            position="absolute"
+                            top="-10px"
+                            right="-10px"
+                            colorScheme="red"
+                            borderRadius="full"
+                            opacity={0}
+                            transition="opacity 0.2s"
+                            _hover={{ opacity: 1 }}
+                            onClick={(e) => handleDeleteMessage(msg._id, e)}
+                            aria-label="Supprimer le message"
+                            zIndex={2}
+                          />
+                        )}
+                        <Text>{msg.content}</Text>
+                        <Text 
+                          fontSize="xs" 
+                          opacity={0.8}
+                          textAlign="right"
+                          mt={1}
+                        >
+                          {new Date(msg.createdAt).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </Text>
+                      </Box>
+                    </Flex>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </VStack>
+              </ModalBody>
+              <ModalFooter>
+                <Input
+                  placeholder="Écrire un message..."
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  mr={3}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleReply();
+                    }
+                  }}
+                />
+                <Button colorScheme="blue" onClick={handleReply}>
+                  Envoyer
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+        )}
       </VStack>
     </Container>
   );
