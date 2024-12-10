@@ -10,6 +10,9 @@ import {
   Select,
   NumberInput,
   NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
   Button,
   SimpleGrid,
   Image,
@@ -181,6 +184,29 @@ const HousingForm = () => {
             value={formData.surface}
             onChange={handleInputChange}
           />
+        </FormControl>
+
+        <FormControl isRequired>
+          <FormLabel>Nombre de chambres</FormLabel>
+          <NumberInput
+            name="bedrooms"
+            value={formData.bedrooms}
+            min={1}
+            onChange={(valueString) => {
+              handleInputChange({
+                target: {
+                  name: 'bedrooms',
+                  value: valueString
+                }
+              });
+            }}
+          >
+            <NumberInputField />
+            <NumberInputStepper>
+              <NumberIncrementStepper />
+              <NumberDecrementStepper />
+            </NumberInputStepper>
+          </NumberInput>
         </FormControl>
 
         <FormControl isRequired>

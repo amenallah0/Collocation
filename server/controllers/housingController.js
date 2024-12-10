@@ -1,11 +1,30 @@
 const Housing = require('../models/Housing');
 const User = require('../models/User');
+const fs = require('fs').promises;
+const path = require('path');
 
 const housingController = {
   getAll: async (req, res) => {
     try {
-      const housings = await Housing.find().populate('userId', 'displayName');
-      res.json(housings);
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      const totalHousings = await Housing.countDocuments();
+      const totalPages = Math.ceil(totalHousings / limit);
+      
+      const housings = await Housing.find()
+        .populate('userId', 'displayName')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      res.json({
+        housings,
+        currentPage: page,
+        totalPages,
+        totalHousings
+      });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -35,42 +54,75 @@ const housingController = {
 
   create: async (req, res) => {
     try {
-      console.log('Received request body:', req.body);
-      console.log('Received files:', req.files);
+      console.log('Creating housing - Request body:', req.body);
+      console.log('Creating housing - Files:', req.files);
 
       if (!req.userId) {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      if (!req.files || req.files.length === 0) {
-        console.log('No files uploaded');
+      // Validation des champs requis
+      const requiredFields = ['title', 'type', 'price', 'surface', 'bedrooms', 'location', 'description'];
+      for (const field of requiredFields) {
+        if (!req.body[field]) {
+          return res.status(400).json({ message: `Le champ ${field} est requis` });
+        }
       }
 
-      const imageUrls = req.files ? req.files.map(file => `/uploads/housings/${file.filename}`) : [];
-      console.log('Image URLs:', imageUrls);
+      // Vérifier si les fichiers ont été uploadés
+      const images = req.files ? req.files.map(file => `/uploads/housings/${file.filename}`) : [];
+      console.log('Processed images:', images);
 
-      const housing = new Housing({
-        ...req.body,
-        userId: req.userId,
-        images: imageUrls,
+      // Traiter les coordonnées
+      let coordinates;
+      try {
+        coordinates = JSON.parse(req.body.coordinates);
+      } catch (error) {
+        console.error('Error parsing coordinates:', error);
+        coordinates = { lat: 0, lng: 0 };
+      }
+
+      // Créer l'objet housing
+      const housingData = {
+        title: req.body.title,
+        type: req.body.type,
         price: Number(req.body.price),
         surface: Number(req.body.surface),
-        bedrooms: Number(req.body.bedrooms)
-      });
+        bedrooms: Number(req.body.bedrooms),
+        location: req.body.location,
+        description: req.body.description,
+        coordinates: coordinates,
+        images: images,
+        userId: req.userId,
+        isActive: true
+      };
 
-      console.log('Housing object before save:', housing);
+      console.log('Housing data to save:', housingData);
 
+      const housing = new Housing(housingData);
       const savedHousing = await housing.save();
       console.log('Saved housing:', savedHousing);
-
-      await User.findByIdAndUpdate(req.userId, {
-        $push: { housings: savedHousing._id }
-      });
 
       res.status(201).json(savedHousing);
     } catch (error) {
       console.error('Error in housing creation:', error);
-      res.status(500).json({ message: error.message });
+      
+      // Nettoyer les fichiers uploadés en cas d'erreur
+      if (req.files) {
+        for (const file of req.files) {
+          try {
+            await fs.unlink(path.join(__dirname, '..', 'uploads', 'housings', file.filename));
+          } catch (unlinkError) {
+            console.error('Error deleting file:', unlinkError);
+          }
+        }
+      }
+
+      res.status(500).json({ 
+        message: 'Erreur lors de la création du logement',
+        error: error.message,
+        details: error.stack
+      });
     }
   },
 

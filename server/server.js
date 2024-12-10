@@ -19,6 +19,18 @@ const io = socketIo(server, {
     credentials: true
   }
 });
+const fs = require('fs');
+
+// Créer le dossier uploads s'il n'existe pas
+const uploadsDir = path.join(__dirname, 'uploads');
+const housingsUploadsDir = path.join(uploadsDir, 'housings');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+if (!fs.existsSync(housingsUploadsDir)) {
+  fs.mkdirSync(housingsUploadsDir);
+}
 
 // Middleware
 app.use(cors({

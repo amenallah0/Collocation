@@ -82,7 +82,6 @@ export const housingAPI = {
       throw error;
     }
   },
-  
   delete: async (id) => {
     try {
       const response = await secureApi.delete(`/housings/${id}`);
@@ -101,7 +100,6 @@ export const housingAPI = {
       throw error;
     }
   }
-
 };
 
 // Service API pour les messages

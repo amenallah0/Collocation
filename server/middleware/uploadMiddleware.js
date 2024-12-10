@@ -21,15 +21,15 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Format de fichier non supporté. Utilisez JPG ou PNG.'));
+      cb(new Error('Format de fichier non supporté. Utilisez JPG, PNG ou GIF.'));
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB max
+    fileSize: 100 * 1024 * 1024 // 100MB max
   }
 });
 

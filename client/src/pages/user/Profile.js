@@ -34,7 +34,13 @@ import {
   Divider,
   Icon,
   Flex,
-  ModalFooter
+  ModalFooter,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
 import HousingCard from '../housing/HousingCard';
@@ -93,6 +99,14 @@ const Profile = () => {
   const messagesEndRef = useRef(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const messageContainerRef = useRef(null);
+
+  // États pour les dialogues de confirmation
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isMessageAlertOpen, setIsMessageAlertOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
+  const [conversationToDelete, setConversationToDelete] = useState(null);
+
+  const cancelRef = useRef();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -290,7 +304,7 @@ const Profile = () => {
     }
   };
 
-  // Ajouter ce nouvel useEffect pour charger les messages
+  // Modifier l'useEffect pour les messages
   useEffect(() => {
     const fetchMessages = async () => {
       if (!user) return;
@@ -298,16 +312,6 @@ const Profile = () => {
       try {
         const data = await messageAPI.getUserMessages();
         setMessages(data);
-        
-        // Mettre à jour la conversation sélectionnée uniquement si la modal est ouverte
-        if (selectedConversation && isModalOpen) {
-          const updatedConversation = groupMessagesByConversation(data).find(
-            conv => conv.user._id === selectedConversation.user._id
-          );
-          if (updatedConversation) {
-            setSelectedConversation(updatedConversation);
-          }
-        }
       } catch (error) {
         toast({
           title: 'Erreur',
@@ -337,33 +341,27 @@ const Profile = () => {
           return prevMessages;
         }
 
-        const updatedMessages = [...prevMessages, newMessage];
-        
-        if (selectedConversation) {
-          const isRelevantMessage = 
-            newMessage.from._id === selectedConversation.user._id || 
-            newMessage.to._id === selectedConversation.user._id;
-
-          if (isRelevantMessage) {
-            const conversations = groupMessagesByConversation(updatedMessages);
-            const updatedConversation = conversations.find(
-              conv => conv.user._id === selectedConversation.user._id
-            );
-            if (updatedConversation) {
-              setSelectedConversation(updatedConversation);
-            }
-          }
-        }
-        
-        return updatedMessages;
+        return [...prevMessages, newMessage];
       });
     });
 
-    // Nettoyer l'écouteur lors du démontage
     return () => {
       socket.off('newMessage');
     };
-  }, [selectedConversation]); // Dépendance à selectedConversation pour mettre à jour la bonne conversation
+  }, []); // Supprimer la dépendance selectedConversation
+
+  // Ajouter un useEffect séparé pour mettre à jour la conversation sélectionnée
+  useEffect(() => {
+    if (selectedConversation && messages.length > 0) {
+      const conversations = groupMessagesByConversation(messages);
+      const updatedConversation = conversations.find(
+        conv => conv.user._id === selectedConversation.user._id
+      );
+      if (updatedConversation) {
+        setSelectedConversation(updatedConversation);
+      }
+    }
+  }, [messages, selectedConversation?.user._id]);
 
   // Fonction pour formater la date
   const formatDate = (dateString) => {
@@ -479,23 +477,22 @@ const Profile = () => {
   // Ajouter la gestion de la suppression des messages
   const handleDeleteMessage = async (messageId, e) => {
     e.stopPropagation();
-    
-    try {
-      await messageAPI.deleteMessage(messageId);
-      
-      // Mettre à jour l'état local des messages
-      setMessages(prevMessages => 
-        prevMessages.filter(msg => msg._id !== messageId)
-      );
+    setMessageToDelete(messageId);
+    setIsMessageAlertOpen(true);
+  };
 
-      // Mettre à jour la conversation sélectionnée si elle est ouverte
+  const confirmDeleteMessage = async () => {
+    try {
+      await messageAPI.deleteMessage(messageToDelete);
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg._id !== messageToDelete)
+      );
       if (selectedConversation) {
         setSelectedConversation(prev => ({
           ...prev,
-          messages: prev.messages.filter(msg => msg._id !== messageId)
+          messages: prev.messages.filter(msg => msg._id !== messageToDelete)
         }));
       }
-
       toast({
         title: 'Succès',
         description: 'Message supprimé avec succès',
@@ -509,6 +506,8 @@ const Profile = () => {
         status: 'error',
         duration: 5000,
       });
+    } finally {
+      setIsMessageAlertOpen(false);
     }
   };
 
@@ -535,17 +534,18 @@ const Profile = () => {
   // Ajouter la fonction de suppression de conversation
   const handleDeleteConversation = async (conversationUserId, e) => {
     e.stopPropagation(); // Empêcher l'ouverture de la conversation
+    setConversationToDelete(conversationUserId);
+    setIsAlertOpen(true);
+  };
 
+  const confirmDeleteConversation = async () => {
     try {
-      await messageAPI.deleteConversation(conversationUserId);
-
-      // Mettre à jour l'état local
+      await messageAPI.deleteConversation(conversationToDelete);
       setMessages(prevMessages => 
         prevMessages.filter(msg => 
-          msg.from._id !== conversationUserId && msg.to._id !== conversationUserId
+          msg.from._id !== conversationToDelete && msg.to._id !== conversationToDelete
         )
       );
-
       toast({
         title: 'Succès',
         description: 'Conversation supprimée avec succès',
@@ -559,6 +559,8 @@ const Profile = () => {
         status: 'error',
         duration: 5000,
       });
+    } finally {
+      setIsAlertOpen(false);
     }
   };
 
@@ -1039,6 +1041,57 @@ const Profile = () => {
             </ModalContent>
           </Modal>
         )}
+
+        {/* Dialogues de confirmation */}
+        <AlertDialog
+          isOpen={isAlertOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={() => setIsAlertOpen(false)}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Supprimer la conversation
+              </AlertDialogHeader>
+              <AlertDialogBody>
+                Êtes-vous sûr de vouloir supprimer cette conversation ?
+              </AlertDialogBody>
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={() => setIsAlertOpen(false)}>
+                  Annuler
+                </Button>
+                <Button colorScheme="red" onClick={confirmDeleteConversation} ml={3}>
+                  Supprimer
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+
+        <AlertDialog
+          isOpen={isMessageAlertOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={() => setIsMessageAlertOpen(false)}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Supprimer le message
+              </AlertDialogHeader>
+              <AlertDialogBody>
+                Êtes-vous sûr de vouloir supprimer ce message ?
+              </AlertDialogBody>
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={() => setIsMessageAlertOpen(false)}>
+                  Annuler
+                </Button>
+                <Button colorScheme="red" onClick={confirmDeleteMessage} ml={3}>
+                  Supprimer
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       </VStack>
     </Container>
   );
