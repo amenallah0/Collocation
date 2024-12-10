@@ -35,6 +35,9 @@ const HousingList = () => {
   const [sortOrder, setSortOrder] = useState('date');
   const [housings, setHousings] = useState([]);
   const toast = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalHousings, setTotalHousings] = useState(0);
 
   // Définir des constantes pour les valeurs max
   const MAX_PRICE = 200000;
@@ -65,15 +68,13 @@ const HousingList = () => {
     'Kebili', 'Gabès', 'Medenine', 'Tataouine'
   ];
 
-  const sortHousings = (housings, order) => {
-    return [...housings].sort((a, b) => {
-      switch (order) {
-        case 'date':
-          return new Date(b.createdAt) - new Date(a.createdAt);
+  const sortHousings = (housingsToSort) => {
+    return [...housingsToSort].sort((a, b) => {
+      switch (sortOrder) {
         case 'price-asc':
-          return a.price - b.price;
+          return Number(a.price) - Number(b.price);
         case 'price-desc':
-          return b.price - a.price;
+          return Number(b.price) - Number(a.price);
         default:
           return new Date(b.createdAt) - new Date(a.createdAt);
       }
@@ -84,28 +85,25 @@ const HousingList = () => {
     const fetchHousings = async () => {
       setLoading(true);
       try {
-        const response = await housingAPI.getAll();
-        console.log('API Response:', response);
-        
-        // Vérifier si response.data existe et est un tableau
-        const housingsData = Array.isArray(response) ? response : response.data;
-        
-        // Formater les données
-        const formattedHousings = housingsData.map(housing => ({
-          _id: housing._id,
-          title: housing.title || 'Sans titre',
-          description: housing.description || '',
-          type: housing.type || 'house',
-          price: Number(housing.price) || 0,
-          surface: Number(housing.surface) || 0,
-          bedrooms: Number(housing.bedrooms) || 0,
-          location: housing.location || '',
-          images: Array.isArray(housing.images) ? housing.images : [],
-          createdAt: new Date(housing.createdAt)
-        }));
+        const queryParams = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: '9',
+          sort: sortOrder,
+          ...(searchTerm && { search: searchTerm }),
+          ...(appliedFilters.type !== 'all' && { type: appliedFilters.type }),
+          ...(appliedFilters.governorate !== 'all' && { location: appliedFilters.governorate }),
+          ...(appliedFilters.bedrooms && { bedrooms: appliedFilters.bedrooms }),
+          ...(appliedFilters.priceRange[0] > 0 && { minPrice: appliedFilters.priceRange[0] }),
+          ...(appliedFilters.priceRange[1] < MAX_PRICE && { maxPrice: appliedFilters.priceRange[1] }),
+          ...(appliedFilters.surfaceRange[0] > 0 && { minSurface: appliedFilters.surfaceRange[0] }),
+          ...(appliedFilters.surfaceRange[1] < MAX_SURFACE && { maxSurface: appliedFilters.surfaceRange[1] })
+        });
 
-        console.log('Formatted housings:', formattedHousings);
-        setHousings(formattedHousings);
+        const response = await housingAPI.getAll(queryParams);
+        setHousings(response.housings);
+        setCurrentPage(response.currentPage);
+        setTotalPages(response.totalPages);
+        setTotalHousings(response.totalHousings);
       } catch (error) {
         console.error('Error fetching housings:', error);
         toast({
@@ -120,7 +118,7 @@ const HousingList = () => {
     };
 
     fetchHousings();
-  }, [toast]);
+  }, [currentPage, appliedFilters, sortOrder, searchTerm]);
 
   const resetFilters = () => {
     const defaultFilters = {
@@ -141,55 +139,23 @@ const HousingList = () => {
     onToggle();
   };
 
-  const displayedHousings = useMemo(() => {
-    return housings
-      .filter(housing => {
-        const matchesSearch = !searchTerm || 
-          housing.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          housing.description?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesType = appliedFilters.type === 'all' || 
-          housing.type === appliedFilters.type;
-        
-        const matchesGovernorate = appliedFilters.governorate === 'all' || 
-          housing.location === appliedFilters.governorate;
-        
-        const matchesBedrooms = !appliedFilters.bedrooms || 
-          Number(housing.bedrooms) === Number(appliedFilters.bedrooms);
-        
-        const matchesPrice = 
-          Number(housing.price) >= appliedFilters.priceRange[0] &&
-          Number(housing.price) <= appliedFilters.priceRange[1];
-        
-        const matchesSurface = 
-          Number(housing.surface) >= appliedFilters.surfaceRange[0] &&
-          Number(housing.surface) <= appliedFilters.surfaceRange[1];
-  
-        return matchesSearch && 
-               matchesType && 
-               matchesGovernorate && 
-               matchesBedrooms && 
-               matchesPrice && 
-               matchesSurface;
-      })
-      .sort((a, b) => {
-        switch (sortOrder) {
-          case 'price-asc':
-            return Number(a.price) - Number(b.price);
-          case 'price-desc':
-            return Number(b.price) - Number(a.price);
-          default:
-            return new Date(b.createdAt) - new Date(a.createdAt);
-        }
-      });
-  }, [housings, searchTerm, appliedFilters, sortOrder]);
-
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('brand.200', 'brand.700');
   const inputBg = useColorModeValue('white', 'gray.700');
   const textColor = useColorModeValue('gray.800', 'white');
 
-  // Le reste du JSX reste identique
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
   return (
     <Container maxW="container.xl" py={8}>
       <Heading mb={6} color={textColor}>Annonces de colocation</Heading>
@@ -333,11 +299,11 @@ const HousingList = () => {
 
         {loading ? (
           <Box p={4} textAlign="center">Chargement des annonces...</Box>
-        ) : displayedHousings.length === 0 ? (
+        ) : housings.length === 0 ? (
           <Box p={4} textAlign="center">Aucune annonce disponible</Box>
         ) : (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {displayedHousings.map((housing) => (
+            {sortHousings(housings).map((housing) => (
               <HousingCard 
                 key={housing._id}
                 housing={housing}
@@ -345,6 +311,28 @@ const HousingList = () => {
             ))}
           </SimpleGrid>
         )}
+
+        <HStack justify="center" mt={6} spacing={2}>
+          <Button
+            onClick={handlePreviousPage}
+            isDisabled={currentPage === 1}
+            colorScheme="brand"
+          >
+            Précédent
+          </Button>
+          
+          <Text>
+            Page {currentPage} sur {totalPages} 
+          </Text>
+          
+          <Button
+            onClick={handleNextPage}
+            isDisabled={currentPage === totalPages}
+            colorScheme="brand"
+          >
+            Suivant
+          </Button>
+        </HStack>
       </VStack>
     </Container>
   );

@@ -5,15 +5,9 @@ const baseURL = 'http://localhost:5000/api';
 
 // Service API pour les logements
 export const housingAPI = {
-  getAll: async () => {
-    try {
-      const response = await secureApi.get('/housings');
-      console.log('API Response:', response);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching housings:', error);
-      throw error;
-    }
+  getAll: (queryParams) => {
+    return secureApi.get(`/housings?${queryParams}`)
+      .then(response => response.data);
   },
   getHousingById: async (id) => {
     try {

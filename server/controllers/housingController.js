@@ -7,15 +7,63 @@ const housingController = {
   getAll: async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      const limit = parseInt(req.query.limit) || 9;
       const skip = (page - 1) * limit;
+      
+      let filter = {};
+      
+      // Ajout de la recherche textuelle
+      if (req.query.search) {
+        filter.$or = [
+          { title: { $regex: req.query.search, $options: 'i' } },
+          { description: { $regex: req.query.search, $options: 'i' } }
+        ];
+      }
+      
+      // Autres filtres existants
+      if (req.query.type && req.query.type !== 'all') {
+        filter.type = req.query.type;
+      }
+      
+      if (req.query.location && req.query.location !== 'all') {
+        filter.location = req.query.location;
+      }
+      
+      if (req.query.minPrice || req.query.maxPrice) {
+        filter.price = {};
+        if (req.query.minPrice) filter.price.$gte = Number(req.query.minPrice);
+        if (req.query.maxPrice) filter.price.$lte = Number(req.query.maxPrice);
+      }
+      
+      if (req.query.minSurface || req.query.maxSurface) {
+        filter.surface = {};
+        if (req.query.minSurface) filter.surface.$gte = Number(req.query.minSurface);
+        if (req.query.maxSurface) filter.surface.$lte = Number(req.query.maxSurface);
+      }
+      
+      if (req.query.bedrooms) {
+        filter.bedrooms = Number(req.query.bedrooms);
+      }
 
-      const totalHousings = await Housing.countDocuments();
+      // Gestion du tri
+      let sort = { createdAt: -1 }; // Par défaut, le plus récent
+      if (req.query.sort) {
+        switch (req.query.sort) {
+          case 'price-asc':
+            sort = { price: 1 };
+            break;
+          case 'price-desc':
+            sort = { price: -1 };
+            break;
+        }
+      }
+
+      const totalHousings = await Housing.countDocuments(filter);
       const totalPages = Math.ceil(totalHousings / limit);
       
-      const housings = await Housing.find()
+      const housings = await Housing.find(filter)
         .populate('userId', 'displayName')
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit);
 
