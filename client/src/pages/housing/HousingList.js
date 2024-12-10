@@ -27,6 +27,7 @@ import HousingCard from './HousingCard';
 import { mockHousings } from '../../data/mockHousings';
 import { housingAPI } from '../../services/api';
 import { useToast,useColorModeValue } from '@chakra-ui/react';
+import { useSearchParams } from 'react-router-dom';
 
 const HousingList = () => {
   const { isOpen, onToggle } = useDisclosure();
@@ -35,7 +36,10 @@ const HousingList = () => {
   const [sortOrder, setSortOrder] = useState('date');
   const [housings, setHousings] = useState([]);
   const toast = useToast();
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(() => {
+    return parseInt(searchParams.get('page')) || 1;
+  });
   const [totalPages, setTotalPages] = useState(1);
   const [totalHousings, setTotalHousings] = useState(0);
 
@@ -146,13 +150,17 @@ const HousingList = () => {
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      setSearchParams({ ...Object.fromEntries(searchParams), page: newPage });
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1);
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      setSearchParams({ ...Object.fromEntries(searchParams), page: newPage });
     }
   };
 
