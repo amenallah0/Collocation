@@ -131,6 +131,22 @@ const messageController = {
       console.error('Error deleting conversation:', error);
       res.status(500).json({ message: error.message });
     }
+  },
+
+  markMessagesAsRead: async (req, res) => {
+    try {
+      const userId = req.userId;
+      
+      await Message.updateMany(
+        { to: userId, read: false },
+        { $set: { read: true } }
+      );
+
+      res.json({ message: 'Messages marqués comme lus' });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      res.status(500).json({ message: error.message });
+    }
   }
 };
 

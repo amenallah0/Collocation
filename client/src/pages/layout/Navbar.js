@@ -8,15 +8,19 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Avatar
+  Avatar,
+  Badge,
+  Icon,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaSun, FaMoon, FaUser } from 'react-icons/fa';
+import { FaSun, FaMoon, FaUser, FaBell } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 
 const Navbar = () => {
   const { colorMode, toggleColorMode } = useColorMode();
-  const { logout, user } = useAuth();  // Obtenir les deux depuis le même hook
+  const { logout, user } = useAuth();
+  const { unreadMessages, markAsRead } = useNotifications();
 
   const handleLogout = async () => {
     try {
@@ -40,6 +44,31 @@ const Navbar = () => {
             icon={colorMode === 'light' ? <FaMoon /> : <FaSun />}
             variant="ghost"
           />
+
+          {user && (
+            <Box position="relative">
+              <IconButton
+                as={RouterLink}
+                to="/profile"
+                icon={<FaBell />}
+                variant="ghost"
+                onClick={markAsRead}
+              />
+              {unreadMessages > 0 && (
+                <Badge
+                  position="absolute"
+                  top="-1"
+                  right="-1"
+                  colorScheme="red"
+                  borderRadius="full"
+                  minW="1.5em"
+                  textAlign="center"
+                >
+                  {unreadMessages}
+                </Badge>
+              )}
+            </Box>
+          )}
 
           {user ? (
             <>

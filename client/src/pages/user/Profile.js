@@ -27,6 +27,7 @@ import {
   useDisclosure,
   HStack,
   useColorModeValue,
+  useColorMode,
   Center,
   Spinner,
   IconButton,
@@ -60,7 +61,7 @@ import io from 'socket.io-client';
 const socket = io('http://localhost:5000', {
   withCredentials: true,
   transports: ['websocket', 'polling']
-}); // Remplacez par l'URL de votre serveur
+});
 
 const Profile = () => {
   const { user, loading, updateUser } = useAuth();
@@ -304,7 +305,7 @@ const Profile = () => {
     }
   };
 
-  // Modifier l'useEffect pour les messages
+  // Déplacer l'initialisation du socket en dehors du composant et du fichier
   useEffect(() => {
     const fetchMessages = async () => {
       if (!user) return;
@@ -325,9 +326,24 @@ const Profile = () => {
     };
 
     fetchMessages();
+  }, [user]); // Dépendance uniquement sur user
 
-    // Écouter les nouveaux messages
-    socket.on('newMessage', (newMessage) => {
+  // Séparer la logique de mise à jour de la conversation sélectionnée
+  useEffect(() => {
+    if (selectedConversation && messages.length > 0) {
+      const conversations = groupMessagesByConversation(messages);
+      const updatedConversation = conversations.find(
+        conv => conv.user._id === selectedConversation.user._id
+      );
+      if (updatedConversation) {
+        setSelectedConversation(updatedConversation);
+      }
+    }
+  }, [messages, selectedConversation?.user._id]);
+
+  // Séparer la logique de Socket.IO
+  useEffect(() => {
+    const handleNewMessage = (newMessage) => {
       setMessages(prevMessages => {
         // Vérifier si le message existe déjà
         const messageExists = prevMessages.some(msg => 
@@ -341,54 +357,24 @@ const Profile = () => {
           return prevMessages;
         }
 
-        const updatedMessages = [...prevMessages, newMessage];
-        
-        // Mettre à jour la conversation sélectionnée si nécessaire
-        if (selectedConversation) {
-          const isRelevantMessage = 
-            newMessage.from._id === selectedConversation.user._id || 
-            newMessage.to._id === selectedConversation.user._id;
-
-          if (isRelevantMessage) {
-            const conversations = groupMessagesByConversation(updatedMessages);
-            const updatedConversation = conversations.find(
-              conv => conv.user._id === selectedConversation.user._id
-            );
-            if (updatedConversation) {
-              setSelectedConversation(updatedConversation);
-            }
-          }
-        }
-
-        // Faire défiler vers le bas si nécessaire
-        if (shouldScrollToBottom) {
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }
-        
-        return updatedMessages;
+        return [...prevMessages, newMessage];
       });
-    });
+
+      // Faire défiler vers le bas si nécessaire
+      if (shouldScrollToBottom) {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    };
+
+    socket.on('newMessage', handleNewMessage);
 
     // Nettoyage
     return () => {
-      socket.off('newMessage');
+      socket.off('newMessage', handleNewMessage);
     };
-  }, [user, selectedConversation, shouldScrollToBottom]);
-
-  // Ajouter un useEffect séparé pour mettre à jour la conversation sélectionnée
-  useEffect(() => {
-    if (selectedConversation && messages.length > 0) {
-      const conversations = groupMessagesByConversation(messages);
-      const updatedConversation = conversations.find(
-        conv => conv.user._id === selectedConversation.user._id
-      );
-      if (updatedConversation) {
-        setSelectedConversation(updatedConversation);
-      }
-    }
-  }, [messages, selectedConversation?.user._id]);
+  }, [shouldScrollToBottom]); // Dépendance minimale
 
   // Fonction pour formater la date
   const formatDate = (dateString) => {
@@ -484,19 +470,20 @@ const Profile = () => {
     }
   };
 
-  const scrollToBottom = () => {
-    if (shouldScrollToBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  // Gérer le défilement manuel
+  // Fonction pour gérer le défilement manuel
   const handleScroll = (e) => {
     const element = e.target;
     const isScrolledNearBottom = 
       element.scrollHeight - element.scrollTop - element.clientHeight < 100;
     
     setShouldScrollToBottom(isScrolledNearBottom);
+  };
+
+  // Fonction pour faire défiler vers le bas
+  const scrollToBottom = () => {
+    if (shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   // Effet pour le défilement automatique lors de nouveaux messages
@@ -981,7 +968,7 @@ const Profile = () => {
             <ModalOverlay />
             <ModalContent maxH="80vh">
               <ModalHeader>
-                Discussion avec {selectedConversation.user.displayName}
+                Discussion avec {selectedConversation?.user.displayName}
               </ModalHeader>
               <ModalCloseButton />
               <ModalBody 
@@ -1002,7 +989,7 @@ const Profile = () => {
                 }}
               >
                 <VStack spacing={3} align="stretch" maxH="calc(70vh - 120px)">
-                  {selectedConversation.messages.map((msg) => (
+                  {selectedConversation?.messages.map((msg) => (
                     <Flex
                       key={`${msg._id}-${msg.createdAt}`}
                       justify={msg.from._id === user._id ? 'flex-end' : 'flex-start'}
@@ -1017,6 +1004,15 @@ const Profile = () => {
                         bg={msg.from._id === user._id ? 'blue.500' : 'gray.100'}
                         color={msg.from._id === user._id ? 'white' : 'gray.800'}
                         _hover={{ '& > button': { opacity: 1 } }}
+                        fontSize="md"
+                        lineHeight="1.5"
+                        css={{
+                          '& emoji': {
+                            fontSize: '1.5em',
+                            verticalAlign: 'middle',
+                            lineHeight: '1'
+                          }
+                        }}
                       >
                         {msg.from._id === user._id && (
                           <IconButton
@@ -1035,7 +1031,7 @@ const Profile = () => {
                             zIndex={2}
                           />
                         )}
-                        <Text>{msg.content}</Text>
+                        <Text whiteSpace="pre-wrap">{msg.content}</Text>
                         <Text 
                           fontSize="xs" 
                           opacity={0.8}
@@ -1053,22 +1049,26 @@ const Profile = () => {
                   <div ref={messagesEndRef} />
                 </VStack>
               </ModalBody>
-              <ModalFooter>
-                <Input
-                  placeholder="Écrire un message..."
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  mr={3}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleReply();
-                    }
-                  }}
-                />
-                <Button colorScheme="blue" onClick={handleReply}>
-                  Envoyer
-                </Button>
+              <ModalFooter flexDirection="column" p={0}>
+                <Box position="relative" width="100%">
+                  <HStack w="100%" p={4} spacing={2}>
+                    <Input
+                      flex="1"
+                      placeholder="Écrire un message..."
+                      value={replyContent}
+                      onChange={(e) => setReplyContent(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleReply();
+                        }
+                      }}
+                    />
+                    <Button colorScheme="blue" onClick={handleReply}>
+                      Envoyer
+                    </Button>
+                  </HStack>
+                </Box>
               </ModalFooter>
             </ModalContent>
           </Modal>

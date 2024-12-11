@@ -4,6 +4,7 @@ import NavBar from './pages/layout/Navbar';
 import Routes from './Routes';
 import { AuthProvider as AuthContextProvider } from './context/AuthContext';
 import theme from './styles/theme';
+import { NotificationProvider } from './context/NotificationContext';
 
 
 function App() {
@@ -11,8 +12,10 @@ function App() {
     <ChakraProvider theme={theme}>
       <BrowserRouter>
         <AuthContextProvider>
+        <NotificationProvider>
             <NavBar />
             <Routes />
+          </NotificationProvider>
         </AuthContextProvider>
       </BrowserRouter>
     </ChakraProvider>
