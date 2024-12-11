@@ -93,3 +93,6 @@ const messageController = {
 };
 
 module.exports = messageController;
+
+// Configurer io pour être accessible dans les routes
+app.set('io', io);

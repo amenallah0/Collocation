@@ -341,14 +341,41 @@ const Profile = () => {
           return prevMessages;
         }
 
-        return [...prevMessages, newMessage];
+        const updatedMessages = [...prevMessages, newMessage];
+        
+        // Mettre à jour la conversation sélectionnée si nécessaire
+        if (selectedConversation) {
+          const isRelevantMessage = 
+            newMessage.from._id === selectedConversation.user._id || 
+            newMessage.to._id === selectedConversation.user._id;
+
+          if (isRelevantMessage) {
+            const conversations = groupMessagesByConversation(updatedMessages);
+            const updatedConversation = conversations.find(
+              conv => conv.user._id === selectedConversation.user._id
+            );
+            if (updatedConversation) {
+              setSelectedConversation(updatedConversation);
+            }
+          }
+        }
+
+        // Faire défiler vers le bas si nécessaire
+        if (shouldScrollToBottom) {
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+        
+        return updatedMessages;
       });
     });
 
+    // Nettoyage
     return () => {
       socket.off('newMessage');
     };
-  }, []); // Supprimer la dépendance selectedConversation
+  }, [user, selectedConversation, shouldScrollToBottom]);
 
   // Ajouter un useEffect séparé pour mettre à jour la conversation sélectionnée
   useEffect(() => {
@@ -417,8 +444,14 @@ const Profile = () => {
   };
 
   const handleOpenConversation = (conversation) => {
-    setSelectedConversation(conversation);
-    setIsModalOpen(true);
+    if (conversation && conversation.messages.length > 0) {
+      const housing = conversation.housing || conversation.messages[0].housingId;
+      setSelectedConversation({
+        ...conversation,
+        housing
+      });
+      setIsModalOpen(true);
+    }
   };
 
   const handleCloseConversation = () => {
@@ -432,14 +465,13 @@ const Profile = () => {
     try {
       const messageData = {
         to: selectedConversation.user._id,
-        housingId: selectedConversation.housing._id,
+        housingId: selectedConversation.housing?._id || selectedConversation.messages[0].housingId._id,
         content: replyContent,
       };
 
       // Envoyer le message via l'API
       await messageAPI.sendMessage(messageData);
       
-      // Ne pas ajouter le message ici car il sera reçu via le socket
       setReplyContent('');
       setShouldScrollToBottom(true);
     } catch (error) {

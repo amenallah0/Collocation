@@ -27,9 +27,21 @@ const messageController = {
       const savedMessage = await message.save();
       console.log('Message saved:', savedMessage);
 
+      // Peupler le message avec les informations nécessaires
+      const populatedMessage = await Message.findById(savedMessage._id)
+        .populate('from', 'displayName photoURL')
+        .populate('to', 'displayName photoURL')
+        .populate('housingId', 'title images');
+
+      // Émettre l'événement avec le message peuplé
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('newMessage', populatedMessage);
+      }
+
       res.status(201).json({ 
         message: 'Message envoyé avec succès',
-        data: savedMessage 
+        data: populatedMessage 
       });
     } catch (error) {
       console.error('Error sending message:', error);
