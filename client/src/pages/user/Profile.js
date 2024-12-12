@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   VStack,
@@ -68,6 +68,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [searchParams] = useSearchParams();
+  const [tabIndex, setTabIndex] = useState(0);
 
   // États
   const [myListings, setMyListings] = useState([]);
@@ -583,6 +585,13 @@ const Profile = () => {
     }
   };
 
+  // Ajouter cet useEffect pour gérer l'ouverture automatique de l'onglet messages
+  useEffect(() => {
+    if (searchParams.get('tab') === 'messages') {
+      setTabIndex(2); // 2 est l'index de l'onglet messages (0: Mes annonces, 1: Favoris, 2: Messages)
+    }
+  }, [searchParams]);
+
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -712,7 +721,13 @@ const Profile = () => {
           </ModalContent>
         </Modal>
 
-        <Tabs colorScheme="blue" isFitted variant="enclosed">
+        <Tabs 
+          colorScheme="blue" 
+          isFitted 
+          variant="enclosed"
+          index={tabIndex}
+          onChange={(index) => setTabIndex(index)}
+        >
           <TabList mb="1em">
             <Tab color={textColor}>Mes annonces</Tab>
             <Tab color={textColor}>Favoris</Tab>

@@ -89,7 +89,7 @@ const Navbar = () => {
                       <MenuItem 
                         key={notification._id}
                         as={RouterLink}
-                        to={`/housing/${notification.housingId._id}`}
+                        to="/profile?tab=messages"
                       >
                         <Flex direction="column">
                           <Text fontWeight="bold">
