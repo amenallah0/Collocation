@@ -39,5 +39,15 @@ export const messageAPI = {
       console.error('Error deleting conversation:', error.response?.data || error.message);
       throw new Error(error.response?.data?.message || 'Erreur lors de la suppression de la conversation');
     }
+  },
+
+  getUnreadMessages: async () => {
+    try {
+      const response = await secureApi.get('/messages/unread');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching unread messages:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Erreur lors de la récupération des notifications');
+    }
   }
 }; 

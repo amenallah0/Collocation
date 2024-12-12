@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { 
   Box, 
   Flex, 
@@ -11,16 +12,44 @@ import {
   Avatar,
   Badge,
   Icon,
+  Text,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FaSun, FaMoon, FaUser, FaBell } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { messageAPI } from '../../services/messageAPI';
 
 const Navbar = () => {
+  const [unreadNotifications, setUnreadNotifications] = useState([]);
   const { colorMode, toggleColorMode } = useColorMode();
   const { logout, user } = useAuth();
   const { unreadMessages, markAsRead } = useNotifications();
+
+  const fetchUnreadMessages = async () => {
+    try {
+      const messages = await messageAPI.getUnreadMessages();
+      setUnreadNotifications(messages);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des notifications:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchUnreadMessages();
+    }
+  }, [user, unreadMessages]);
+
+  const handleMarkAsRead = async () => {
+    try {
+      await messageAPI.markMessagesAsRead();
+      await markAsRead();
+      setUnreadNotifications([]);
+    } catch (error) {
+      console.error('Erreur lors du marquage des messages:', error);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -47,13 +76,39 @@ const Navbar = () => {
 
           {user && (
             <Box position="relative">
-              <IconButton
-                as={RouterLink}
-                to="/profile"
-                icon={<FaBell />}
-                variant="ghost"
-                onClick={markAsRead}
-              />
+              <Menu>
+                <MenuButton
+                  as={IconButton}
+                  icon={<FaBell />}
+                  variant="ghost"
+                  onClick={handleMarkAsRead}
+                />
+                <MenuList maxH="300px" overflowY="auto">
+                  {unreadNotifications.length > 0 ? (
+                    unreadNotifications.map((notification) => (
+                      <MenuItem 
+                        key={notification._id}
+                        as={RouterLink}
+                        to={`/housing/${notification.housingId._id}`}
+                      >
+                        <Flex direction="column">
+                          <Text fontWeight="bold">
+                            {notification.from.displayName}
+                          </Text>
+                          <Text fontSize="sm">
+                            {notification.content}
+                          </Text>
+                          <Text fontSize="xs" color="gray.500">
+                            {notification.housingId.title}
+                          </Text>
+                        </Flex>
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem>Aucune notification</MenuItem>
+                  )}
+                </MenuList>
+              </Menu>
               {unreadMessages > 0 && (
                 <Badge
                   position="absolute"

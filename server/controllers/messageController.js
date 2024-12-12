@@ -147,6 +147,24 @@ const messageController = {
       console.error('Error marking messages as read:', error);
       res.status(500).json({ message: error.message });
     }
+  },
+
+  getUnreadMessages: async (req, res) => {
+    try {
+      const userId = req.userId;
+      const unreadMessages = await Message.find({
+        to: userId,
+        read: false
+      })
+      .populate('from', 'displayName photoURL')
+      .populate('housingId', 'title')
+      .sort({ createdAt: -1 });
+
+      res.json(unreadMessages);
+    } catch (error) {
+      console.error('Error fetching unread messages:', error);
+      res.status(500).json({ message: error.message });
+    }
   }
 };
 
