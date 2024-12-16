@@ -15,9 +15,17 @@ const messageController = {
         });
       }
 
+      const recipientId = typeof to === 'object' ? to._id : to;
+
+      if (recipientId.toString() === req.userId.toString()) {
+        return res.status(400).json({ 
+          message: 'Vous ne pouvez pas envoyer un message à vous-même' 
+        });
+      }
+
       const message = new Message({
         from: req.userId, // Utiliser l'ID de l'utilisateur authentifié
-        to,
+        to: recipientId,
         housingId,
         content
       });
