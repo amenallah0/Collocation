@@ -49,5 +49,15 @@ export const messageAPI = {
       console.error('Error fetching unread messages:', error.response?.data || error.message);
       throw new Error(error.response?.data?.message || 'Erreur lors de la récupération des notifications');
     }
+  },
+
+  markMessagesAsRead: async () => {
+    try {
+      const response = await secureApi.put('/messages/markAsRead');
+      return response.data;
+    } catch (error) {
+      console.error('Error marking messages as read:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Erreur lors du marquage des messages');
+    }
   }
 }; 

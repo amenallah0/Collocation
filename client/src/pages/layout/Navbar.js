@@ -11,11 +11,10 @@ import {
   MenuItem,
   Avatar,
   Badge,
-  Icon,
   Text,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaSun, FaMoon, FaUser, FaBell } from 'react-icons/fa';
+import { FaSun, FaMoon, FaBell } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { messageAPI } from '../../services/messageAPI';
@@ -25,6 +24,7 @@ const Navbar = () => {
   const { colorMode, toggleColorMode } = useColorMode();
   const { logout, user } = useAuth();
   const { unreadMessages, markAsRead } = useNotifications();
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const fetchUnreadMessages = async () => {
     try {
@@ -41,20 +41,34 @@ const Navbar = () => {
     }
   }, [user, unreadMessages]);
 
-  const handleMarkAsRead = async () => {
+  const handleNotificationClick = () => {
+    setIsNotificationOpen(!isNotificationOpen);
+  };
+
+  const handleNotificationItemClick = async (notificationId) => {
+    try {
+      setUnreadNotifications((prev) =>
+        prev.filter((notification) => notification._id !== notificationId)
+      );
+      markAsRead();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
     try {
       await messageAPI.markMessagesAsRead();
-      await markAsRead();
+      markAsRead();
       setUnreadNotifications([]);
     } catch (error) {
-      console.error('Erreur lors du marquage des messages:', error);
+      console.error('Error marking all messages as read:', error);
     }
   };
 
   const handleLogout = async () => {
     try {
       await logout();
-      // La redirection se fera automatiquement via le contexte d'authentification
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }
@@ -81,29 +95,35 @@ const Navbar = () => {
                   as={IconButton}
                   icon={<FaBell />}
                   variant="ghost"
-                  onClick={handleMarkAsRead}
+                  onClick={handleNotificationClick}
                 />
                 <MenuList maxH="300px" overflowY="auto">
                   {unreadNotifications.length > 0 ? (
-                    unreadNotifications.map((notification) => (
-                      <MenuItem 
-                        key={notification._id}
-                        as={RouterLink}
-                        to="/profile?tab=messages"
-                      >
-                        <Flex direction="column">
-                          <Text fontWeight="bold">
-                            {notification.from.displayName}
-                          </Text>
-                          <Text fontSize="sm">
-                            {notification.content}
-                          </Text>
-                          <Text fontSize="xs" color="gray.500">
-                            {notification.housingId.title}
-                          </Text>
-                        </Flex>
+                    <>
+                      <MenuItem onClick={handleMarkAllAsRead}>
+                        Marquer tout comme lu
                       </MenuItem>
-                    ))
+                      {unreadNotifications.map((notification) => (
+                        <MenuItem 
+                          key={notification._id}
+                          as={RouterLink}
+                          to="/profile?tab=messages"
+                          onClick={() => handleNotificationItemClick(notification._id)}
+                        >
+                          <Flex direction="column">
+                            <Text fontWeight="bold">
+                              {notification.from.displayName}
+                            </Text>
+                            <Text fontSize="sm">
+                              {notification.content}
+                            </Text>
+                            <Text fontSize="xs" color="gray.500">
+                              {notification.housingId.title}
+                            </Text>
+                          </Flex>
+                        </MenuItem>
+                      ))}
+                    </>
                   ) : (
                     <MenuItem>Aucune notification</MenuItem>
                   )}

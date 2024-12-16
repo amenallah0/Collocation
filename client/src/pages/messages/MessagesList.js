@@ -6,15 +6,24 @@ import {
   Divider,
   useColorModeValue
 } from '@chakra-ui/react';
+import messageAPI from '../../api/messageAPI';
 
 const MessagesList = ({ userId }) => {
   const [messages, setMessages] = useState([]);
-  const bgColor = useColorModeValue('white', 'gray.800');
+  const bgColor = useColorModeValue('white', 'gray.900');
 
   useEffect(() => {
-    // TODO: Implémenter la logique de chargement des messages
-    // Cette fonctionnalité sera développée plus tard
-    setMessages([]);
+    // Fetch messages from the API
+    const fetchMessages = async () => {
+      try {
+        const response = await messageAPI.getUserMessages();
+        setMessages(response);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    };
+
+    fetchMessages();
   }, [userId]);
 
   if (messages.length === 0) {
@@ -28,8 +37,15 @@ const MessagesList = ({ userId }) => {
   return (
     <VStack spacing={4} align="stretch">
       {messages.map((message) => (
-        <Box key={message._id} p={4} bg={bgColor} borderRadius="lg" borderWidth="1px">
-          <Text fontWeight="bold">{message.from}</Text>
+        <Box
+          key={message._id}
+          p={4}
+          bg={bgColor}
+          borderRadius="lg"
+          borderWidth="1px"
+          borderColor={message.read ? 'gray.200' : 'red.500'}
+        >
+          <Text fontWeight="bold">{message.from.displayName}</Text>
           <Text>{message.content}</Text>
           <Text fontSize="sm" color="gray.500">
             {new Date(message.createdAt).toLocaleDateString()}
