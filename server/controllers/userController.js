@@ -88,12 +88,24 @@ const userController = {
   getUserData: async (req, res) => {
     try {
       const user = await User.findById(req.params.userId)
-        .populate('housings')
+        .populate({
+          path: 'housings',
+          populate: {
+            path: 'userId',
+            select: 'displayName email phone'
+          }
+        })
         .populate('favorites');
       
       if (!user) {
         return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
+
+      console.log('User data fetched:', {
+        userId: user._id,
+        housingsCount: user.housings.length,
+        housings: user.housings
+      });
 
       res.json({
         user: {
@@ -108,6 +120,7 @@ const userController = {
         favorites: user.favorites
       });
     } catch (error) {
+      console.error('Error in getUserData:', error);
       res.status(500).json({ message: error.message });
     }
   },

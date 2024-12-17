@@ -120,12 +120,22 @@ const Profile = () => {
   // Fonction pour charger les données de l'utilisateur
   const loadUserData = async () => {
     if (!user?._id) return;
-
+  
     try {
+      console.log('Fetching user data for ID:', user._id);
       const data = await userService.getUserData(user._id);
-      setMyListings(data.housings || []);
-      setFavorites(data.favorites || []);
+      console.log('Received user data:', data);
+      
+      if (data.housings) {
+        console.log('Setting listings:', data.housings);
+        setMyListings(data.housings);
+      }
+      
+      if (data.favorites) {
+        setFavorites(data.favorites);
+      }
     } catch (error) {
+      console.error('Error loading user data:', error);
       toast({
         title: 'Erreur',
         description: error.message,
@@ -134,13 +144,14 @@ const Profile = () => {
       });
     }
   };
-
-  // Charger les données au montage du composant
+  
+  // Ajouter cet useEffect
   useEffect(() => {
-    if (user) {
+    if (user?._id) {
+      console.log('User ID changed, loading data for:', user._id);
       loadUserData();
     }
-  }, [user]);
+  }, [user?._id]);
 
   useEffect(() => {
     if (user) {

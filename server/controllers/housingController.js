@@ -151,6 +151,10 @@ const housingController = {
       const savedHousing = await housing.save();
       console.log('Saved housing:', savedHousing);
 
+      await User.findByIdAndUpdate(req.userId, {
+        $push: { housings: savedHousing._id }
+      });
+
       res.status(201).json(savedHousing);
     } catch (error) {
       console.error('Error in housing creation:', error);
