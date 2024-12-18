@@ -255,6 +255,38 @@ const housingController = {
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
+  },
+
+  updateAvailability: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      console.log('Updating availability:', { id, isActive, userId: req.userId });
+
+      // Vérifier si l'annonce existe et appartient à l'utilisateur
+      const housing = await Housing.findOne({ _id: id, userId: req.userId });
+      
+      if (!housing) {
+        console.log('Housing not found or unauthorized');
+        return res.status(404).json({ 
+          message: 'Annonce non trouvée ou vous n\'êtes pas autorisé à la modifier' 
+        });
+      }
+
+      housing.isActive = isActive;
+      await housing.save();
+
+      console.log('Housing updated successfully:', housing);
+
+      res.json({ 
+        message: 'Disponibilité mise à jour avec succès',
+        housing 
+      });
+    } catch (error) {
+      console.error('Error in updateAvailability:', error);
+      res.status(500).json({ message: error.message });
+    }
   }
 };
 

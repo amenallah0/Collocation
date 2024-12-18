@@ -1,7 +1,7 @@
 import { publicApi, secureApi } from '../config/api.config';
 import axios from 'axios';
 
-const baseURL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000/api';
 
 // Service API pour les logements
 export const housingAPI = {
@@ -69,7 +69,7 @@ export const housingAPI = {
   },
   getById: async (id) => {
     try {
-      const response = await axios.get(`${baseURL}/housings/${id}`);
+      const response = await axios.get(`${API_URL}/housings/${id}`);
       return response;
     } catch (error) {
       console.error('Error fetching housing:', error);
@@ -92,6 +92,21 @@ export const housingAPI = {
     } catch (error) {
       console.error('Error toggling favorite:', error);
       throw error;
+    }
+  },
+  updateAvailability: async (housingId, isActive) => {
+    try {
+      const response = await axios.patch(`${API_URL}/housings/${housingId}/availability`, 
+        { isActive },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
     }
   }
 };

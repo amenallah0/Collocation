@@ -25,7 +25,7 @@ import {
   useColorModeValue,
   IconButton
 } from '@chakra-ui/react';
-import { FaEnvelope, FaMapMarkerAlt, FaBed, FaRuler, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaEnvelope, FaMapMarkerAlt, FaBed, FaRuler, FaChevronLeft, FaChevronRight, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { housingAPI } from '../../services/api';
 import Map from '../common/Map';
 import { useAuth } from '../../context/AuthContext';
@@ -56,6 +56,8 @@ const HousingDetail = () => {
     onOpen: onImageOpen, 
     onClose: onImageClose 
   } = useDisclosure();
+
+  const [isActive, setIsActive] = useState(housing?.isActive);
 
   const getImageUrl = (imagePath) => {
     return imagePath ? `http://localhost:5000${imagePath}` : 'https://via.placeholder.com/400x300?text=Pas+d%27image';
@@ -179,6 +181,26 @@ const HousingDetail = () => {
     }
   };
 
+  const handleAvailabilityToggle = async () => {
+    try {
+      const response = await housingAPI.updateAvailability(housing._id, !isActive);
+      setIsActive(response.data.housing.isActive);
+      toast({
+        title: 'Succès',
+        description: 'Disponibilité mise à jour avec succès',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: error.response?.data?.message || 'Erreur lors de la mise à jour',
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
   return (
     <Container maxW="container.xl" py={12}>
       <Box 
@@ -290,6 +312,18 @@ const HousingDetail = () => {
               >
                 Contacter le propriétaire
               </Button>
+
+              {user && housing && user._id === housing.userId && (
+                <Button
+                  leftIcon={isActive ? <FaCheckCircle /> : <FaTimesCircle />}
+                  colorScheme={isActive ? "green" : "red"}
+                  onClick={handleAvailabilityToggle}
+                  mt={4}
+                  w="100%"
+                >
+                  {isActive ? "Marquer comme indisponible" : "Marquer comme disponible"}
+                </Button>
+              )}
             </VStack>
           </Box>
         </Grid>

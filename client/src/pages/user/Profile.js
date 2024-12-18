@@ -48,7 +48,7 @@ import HousingCard from '../housing/HousingCard';
 import { userService } from '../../services/user.service';
 import { CloseIcon, DeleteIcon } from '@chakra-ui/icons';
 import { housingAPI } from '../../services/api';
-import { FaEdit, FaEnvelope, FaClock, FaHome, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaEnvelope, FaClock, FaHome, FaTrash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import {
   NumberInput,
   NumberInputField,
@@ -90,6 +90,9 @@ const Profile = () => {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.800', 'white');
   const labelColor = useColorModeValue('gray.600', 'gray.400');
+  const badgeBgAvailable = useColorModeValue('green.500', 'green.200');
+  const badgeBgUnavailable = useColorModeValue('red.500', 'red.200');
+  const badgeTextColor = useColorModeValue('white', 'gray.800');
 
   // Ajouter ces états
   const [editingHousing, setEditingHousing] = useState(null);
@@ -603,6 +606,37 @@ const Profile = () => {
     }
   }, [searchParams]);
 
+  const handleAvailabilityToggle = async (housingId, currentStatus) => {
+    try {
+      console.log('Toggling availability for housing:', housingId);
+      const response = await housingAPI.updateAvailability(housingId, !currentStatus);
+      console.log('Response from server:', response);
+      
+      setMyListings(prevListings =>
+        prevListings.map(listing =>
+          listing._id === housingId
+            ? { ...listing, isActive: !listing.isActive }
+            : listing
+        )
+      );
+      
+      toast({
+        title: 'Succès',
+        description: 'Disponibilité mise à jour avec succées',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error toggling availability:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors de la mise à jour',
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -773,6 +807,38 @@ const Profile = () => {
                         zIndex={2}
                         spacing={2}
                       >
+                        <Badge
+                          colorScheme={listing.isActive ? "green" : "red"}
+                          cursor="pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAvailabilityToggle(listing._id, listing.isActive);
+                          }}
+                          bg={listing.isActive ? badgeBgAvailable : badgeBgUnavailable}
+                          color={badgeTextColor}
+                          px={3}
+                          py={1}
+                          borderRadius="full"
+                          fontWeight="medium"
+                          boxShadow="sm"
+                          _hover={{
+                            opacity: 0.8,
+                            transform: 'scale(1.05)',
+                          }}
+                          transition="all 0.2s"
+                        >
+                          {listing.isActive ? (
+                            <HStack spacing={1} alignItems="center">
+                              <Icon as={FaCheckCircle} w={3} h={3} />
+                              <Text>Disponible</Text>
+                            </HStack>
+                          ) : (
+                            <HStack spacing={1} alignItems="center">
+                              <Icon as={FaTimesCircle} w={3} h={3} />
+                              <Text>Indisponible</Text>
+                            </HStack>
+                          )}
+                        </Badge>
                         <IconButton
                           icon={<FaEdit />}
                           colorScheme="blue"
