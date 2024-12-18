@@ -858,7 +858,10 @@ const Profile = () => {
                           _hover={{ bg: 'red.50' }}
                         />
                       </HStack>
-                      <HousingCard housing={listing} />
+                      <HousingCard 
+                        housing={listing} 
+                        showFavoriteButton={false}
+                      />
                     </Box>
                   ))
                 ) : (
@@ -964,6 +967,7 @@ const Profile = () => {
                       housing={favorite} 
                       isFavorite={true}
                       onFavoriteToggle={handleFavoriteToggle}
+                      showFavoriteButton={false}
                     />
                   ))
                 ) : (

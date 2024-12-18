@@ -16,7 +16,7 @@ import {
   import { useAuth } from '../../context/AuthContext';
   import { housingAPI } from '../../services/api';
   
-  const HousingCard = ({ housing, onFavoriteToggle, isFavorite }) => {
+  const HousingCard = ({ housing, onFavoriteToggle, isFavorite, showFavoriteButton = true }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const toast = useToast();
@@ -83,24 +83,26 @@ import {
         cursor="pointer"
         onClick={handleClick}
       >
-        <IconButton
-          icon={<FaHeart />}
-          isRound
-          size="sm"
-          position="absolute"
-          top="4"
-          right="4"
-          zIndex="1"
-          color={isFavorite ? favoriteColor : 'gray.400'}
-          bg={favoriteBg}
-          onClick={handleFavoriteClick}
-          _hover={{
-            transform: 'scale(1.1)',
-            color: favoriteColor
-          }}
-          boxShadow="md"
-          aria-label="Ajouter aux favoris"
-        />
+        {showFavoriteButton && (
+          <IconButton
+            icon={<FaHeart />}
+            isRound
+            size="sm"
+            position="absolute"
+            top="4"
+            right="4"
+            zIndex="1"
+            color={isFavorite ? favoriteColor : 'gray.400'}
+            bg={favoriteBg}
+            onClick={handleFavoriteClick}
+            _hover={{
+              transform: 'scale(1.1)',
+              color: favoriteColor
+            }}
+            boxShadow="md"
+            aria-label="Ajouter aux favoris"
+          />
+        )}
 
         <Box position="relative" height="200px">
           <AspectRatio ratio={16 / 9}>
