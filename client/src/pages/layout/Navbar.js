@@ -117,9 +117,11 @@ const Navbar = () => {
                             <Text fontSize="sm">
                               {notification.content}
                             </Text>
-                            <Text fontSize="xs" color="gray.500">
-                              {notification.housingId.title}
-                            </Text>
+                            {notification.housingId && (
+                              <Text fontSize="xs" color="gray.500">
+                                {notification.housingId.title}
+                              </Text>
+                            )}
                           </Flex>
                         </MenuItem>
                       ))}
