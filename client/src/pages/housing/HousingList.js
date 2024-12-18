@@ -44,7 +44,7 @@ const HousingList = () => {
   const [totalHousings, setTotalHousings] = useState(0);
 
   // Définir des constantes pour les valeurs max
-  const MAX_PRICE = 200000;
+  const MAX_PRICE = 10000;
   const MAX_SURFACE = 1000;
 
   // Initialiser les états avec les bonnes valeurs max
@@ -244,7 +244,7 @@ const HousingList = () => {
               </HStack>
 
               <Box>
-                <Text mb={2}>Prix (€/mois)</Text>
+                <Text mb={2}>Prix (TND/mois)</Text>
                 <RangeSlider
                   min={0}
                   max={MAX_PRICE}
@@ -259,8 +259,8 @@ const HousingList = () => {
                   <RangeSliderThumb index={1} />
                 </RangeSlider>
                 <HStack justify="space-between" mt={2}>
-                  <Text>{tempFilters.priceRange[0]}€</Text>
-                  <Text>{tempFilters.priceRange[1]}€</Text>
+                  <Text>{tempFilters.priceRange[0]} TND</Text>
+                  <Text>{tempFilters.priceRange[1]} TND</Text>
                 </HStack>
               </Box>
 

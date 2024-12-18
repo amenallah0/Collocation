@@ -138,7 +138,7 @@ import {
 
           <Box>
             <Text fontWeight="bold" fontSize="lg">
-              {housing.price}€
+              {housing.price} TND
               <Box as="span" color="gray.600" fontSize="sm" fontWeight="normal">
                 / mois
               </Box>

@@ -256,7 +256,7 @@ const HousingDetail = () => {
                 fontWeight="bold" 
                 color={accentColor}
               >
-                {housing.price}€<Text as="span" fontSize="lg">/mois</Text>
+                {housing.price} TND<Text as="span" fontSize="lg">/mois</Text>
               </Text>
 
               <Box py={4} borderTopWidth="1px" borderBottomWidth="1px" borderColor={borderColor}>

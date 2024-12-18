@@ -167,7 +167,7 @@ const HousingForm = () => {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel>Prix/mois (€)</FormLabel>
+          <FormLabel>Prix/mois (TND)</FormLabel>
           <Input
             name="price"
             type="number"
