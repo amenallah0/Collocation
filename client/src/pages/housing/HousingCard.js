@@ -7,8 +7,6 @@ import {
     useColorModeValue,
     IconButton,
     useToast,
-    Flex,
-    VStack,
     HStack
   } from '@chakra-ui/react';
   import { useNavigate } from 'react-router-dom';
@@ -46,12 +44,9 @@ import {
           description: result.isFavorite 
             ? 'L\'annonce a été ajoutée à vos favoris.' 
             : 'L\'annonce a été retirée de vos favoris.',
-          status: result.isFavorite ? 'success' : 'error',
+          status: 'success',
           duration: 3000,
           isClosable: true,
-          position: 'top-right',
-          variant: 'solid',
-          icon: result.isFavorite ? '❤️' : '💔',
         });
       } catch (error) {
         console.error('Error toggling favorite:', error);
@@ -65,91 +60,116 @@ import {
       }
     };
 
-    const bgColor = useColorModeValue('white', 'gray.800');
-    const textColor = useColorModeValue('gray.800', 'white');
-    const favoriteColor = useColorModeValue('red.500', 'red.300');
-    const favoriteBg = useColorModeValue('white', 'gray.700');
-
     return (
       <Box 
-        maxW="sm"
-        borderWidth="1px"
-        borderRadius="lg"
+        borderWidth="1px" 
+        borderRadius="xl" 
         overflow="hidden"
-        bg={bgColor}
-        position="relative"
-        transition="transform 0.2s"
-        _hover={{ transform: 'translateY(-4px)', shadow: 'lg' }}
+        bg={useColorModeValue('white', 'gray.800')}
         cursor="pointer"
         onClick={handleClick}
+        _hover={{ 
+          transform: 'translateY(-5px)', 
+          transition: 'transform 0.2s',
+          shadow: 'lg'
+        }}
       >
-        <IconButton
-          icon={<FaHeart />}
-          isRound
-          size="sm"
-          position="absolute"
-          top="4"
-          right="4"
-          zIndex="1"
-          color={isFavorite ? favoriteColor : 'gray.400'}
-          bg={favoriteBg}
-          onClick={handleFavoriteClick}
-          _hover={{
-            transform: 'scale(1.1)',
-            color: favoriteColor
-          }}
-          boxShadow="md"
-          aria-label="Ajouter aux favoris"
-        />
-
-        <Box position="relative" height="200px">
-          <Image
-            src={imageUrl}
-            alt={housing.title}
-            objectFit="cover"
-            w="100%"
-            h="100%"
-          />
+        <Box position="relative">
+          <AspectRatio ratio={16 / 9}>
+            <Image
+              src={imageUrl}
+              alt={housing.title}
+              objectFit="cover"
+              width="100%"
+              height="100%"
+              fallback={
+                <Box 
+                  height="100%" 
+                  width="100%" 
+                  bg="gray.100" 
+                  display="flex" 
+                  alignItems="center" 
+                  justifyContent="center"
+                >
+                  <Text color="gray.500">Image non disponible</Text>
+                </Box>
+              }
+            />
+          </AspectRatio>
           
-          <Badge
-            position="absolute"
-            top="4"
-            left="4"
-            colorScheme={housing.isActive ? "green" : "red"}
-            px="2"
-            borderRadius="full"
-            boxShadow="md"
+          <HStack 
+            position="absolute" 
+            top={2} 
+            left={2} 
+            spacing={2}
           >
-            {housing.isActive ? "Disponible" : "Indisponible"}
-          </Badge>
-        </Box>
-
-        <Box p="6">
-          <VStack align="stretch" spacing={3}>
-            <Text
-              fontWeight="semibold"
-              fontSize="xl"
-              color={textColor}
-              noOfLines={1}
+            <Badge 
+              borderRadius="full" 
+              px={3} 
+              py={1} 
+              colorScheme={housing.isActive ? "green" : "red"}
+              bg={housing.isActive ? "green.500" : "red.500"}
+              color="white"
+              fontWeight="bold"
             >
-              {housing.title}
+              {housing.isActive ? "Disponible" : "Indisponible"}
+            </Badge>
+            
+          </HStack>
+        </Box>
+        
+        <Box p="6">
+          <Box d="flex" alignItems="baseline">
+            <Badge borderRadius="full" px="2" colorScheme="teal">
+              {housing.type === 'house' ? 'Maison' : 'Chambre'}
+            </Badge>
+            <Box
+              color="gray.500"
+              fontWeight="semibold"
+              letterSpacing="wide"
+              fontSize="xs"
+              textTransform="uppercase"
+              ml="2"
+            >
+              {housing.surface} m² • {housing.bedrooms} ch
+            </Box>
+          </Box>
+          {user && (
+          
+          <IconButton
+            icon={<FaHeart />}
+            position="relative"
+            top={-10}
+            right={-80}
+            zIndex={2}
+            colorScheme={"blue"}
+            variant="solid"
+            onClick={handleFavoriteClick}
+            aria-label="Ajouter aux favoris"
+          />
+        )}
+          <Box
+            mt="-7"
+            fontWeight="semibold"
+            as="h4"
+            lineHeight="tight"
+            noOfLines={1}
+          >
+            {housing.title}
+          </Box>
+
+          <Box>
+            <Text fontWeight="bold" fontSize="lg">
+              {housing.price} TND
+              <Box as="span" color="gray.600" fontSize="sm" fontWeight="normal">
+                / mois
+              </Box>
             </Text>
+          </Box>
 
-            <HStack justify="space-between" wrap="wrap">
-              <Badge colorScheme="blue" px="2" borderRadius="full">
-                {housing.type === 'house' ? 'Maison' : 'Appartement'}
-              </Badge>
-              <Text fontWeight="bold" color={textColor}>
-                {housing.price} TND/mois
-              </Text>
-            </HStack>
-
-            <HStack spacing={4} color="gray.600">
-              <Text>{housing.surface}m²</Text>
-              <Text>{housing.bedrooms} ch.</Text>
-              <Text noOfLines={1}>{housing.location}</Text>
-            </HStack>
-          </VStack>
+          <Box mt="2" color="gray.600" fontSize="sm">
+            {housing.location}
+          </Box>
         </Box>
       </Box>
     );
