@@ -13,10 +13,12 @@ import {
     VStack,
     Icon,
     useColorModeValue,
-    Select
+    Select,
+    useToast
   } from '@chakra-ui/react';
   import { FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
   import { useState } from 'react';
+  import emailjs from '@emailjs/browser';
   
   const ContactInfo = ({ icon, title, content, link }) => (
     <VStack
@@ -47,11 +49,54 @@ import {
       subject: '',
       message: ''
     });
+    const [isLoading, setIsLoading] = useState(false);
+    const toast = useToast();
   
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
-      // Logique d'envoi du formulaire
-      console.log(formData);
+      setIsLoading(true);
+  
+      try {
+        const templateParams = {
+          from_name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message
+        };
+  
+        await emailjs.send(
+          'service_xze6buo',
+          'template_8h2mkp9',
+          templateParams,
+          'sJibSsHqd8Ovlku3z'
+        );
+  
+        toast({
+          title: "Message envoyé",
+          description: "Nous vous répondrons dans les plus brefs délais !",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+  
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+      } catch (error) {
+        console.error('Erreur:', error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de l'envoi du message",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
   
     const handleChange = (e) => {
@@ -117,6 +162,7 @@ import {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
+                        placeholder="Votre nom"
                       />
                     </FormControl>
                     <FormControl isRequired>
@@ -126,6 +172,7 @@ import {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
+                        placeholder="votre@email.com"
                       />
                     </FormControl>
                   </SimpleGrid>
@@ -136,8 +183,8 @@ import {
                       name="subject"
                       value={formData.subject}
                       onChange={handleChange}
+                      placeholder="Sélectionnez un sujet"
                     >
-                      <option value="">Sélectionnez un sujet</option>
                       <option value="support">Support technique</option>
                       <option value="billing">Facturation</option>
                       <option value="partnership">Partenariat</option>
@@ -152,6 +199,7 @@ import {
                       value={formData.message}
                       onChange={handleChange}
                       rows={6}
+                      placeholder="Votre message..."
                     />
                   </FormControl>
   
@@ -160,6 +208,8 @@ import {
                     colorScheme="brand"
                     size="lg"
                     w={{ base: 'full', md: 'auto' }}
+                    isLoading={isLoading}
+                    loadingText="Envoi en cours..."
                   >
                     Envoyer le message
                   </Button>

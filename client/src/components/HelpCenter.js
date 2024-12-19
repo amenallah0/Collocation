@@ -44,6 +44,7 @@ import {
   FaEnvelope
 } from 'react-icons/fa';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 // Composant pour les articles populaires
 const PopularArticle = ({ title, views, category }) => (
@@ -249,13 +250,8 @@ const HelpCenter = () => {
             </Text>
             <HStack spacing={4}>
               <Button
-                colorScheme="brand"
-                size="lg"
-                leftIcon={<FaHeadset />}
-              >
-                Chat en direct
-              </Button>
-              <Button
+                as={Link}
+                to="/contact"
                 variant="outline"
                 colorScheme="brand"
                 size="lg"
