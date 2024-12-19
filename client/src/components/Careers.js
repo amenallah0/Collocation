@@ -18,7 +18,22 @@ import {
   AccordionIcon,
   Image,
   Flex,
-  Divider
+  Divider,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  Input,
+  Select,
+  useToast,
+  InputGroup,
+  InputLeftElement,
+  useDisclosure
 } from '@chakra-ui/react';
 import { 
   FaBriefcase, 
@@ -29,9 +44,15 @@ import {
   FaUsers, 
   FaHandshake, 
   FaLightbulb,
-  FaCoffee
+  FaCoffee,
+  FaUser,
+  FaPhone,
+  FaEnvelope,
+  FaFile
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import emailjs from '@emailjs/browser';
+import { useState, useRef } from 'react';
 
 const MotionBox = motion(Box);
 
@@ -70,56 +91,263 @@ const BenefitCard = ({ icon, title, description, delay }) => (
   </MotionBox>
 );
 
+// Composant pour le formulaire de candidature
+const ApplicationForm = ({ isOpen, onClose, jobTitle }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const toast = useToast();
+  const fileInputRef = useRef();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData(e.target);
+      let fileUrl = '';
+
+      // Si un fichier est sélectionné, on l'upload d'abord
+      if (selectedFile) {
+        const uploadData = new FormData();
+        uploadData.append('file', selectedFile);
+        
+        try {
+          // Utilisation de file.io au lieu de tmpfiles.org
+          const response = await fetch('https://file.io', {
+            method: 'POST',
+            body: uploadData
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            fileUrl = result.link; // file.io renvoie directement un lien de téléchargement
+          }
+        } catch (uploadError) {
+          console.error('Erreur upload:', uploadError);
+          throw new Error('Erreur lors de l\'upload du CV');
+        }
+      }
+
+      // Préparation des données pour EmailJS
+      const data = {
+        to_email: "admin@collocation.com",
+        from_name: `${formData.get('firstName')} ${formData.get('lastName')}`,
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        subject: formData.get('subject'),
+        job_title: jobTitle,
+        message: formData.get('message'),
+        cv_url: fileUrl || 'Aucun CV joint',
+        cv_name: selectedFile ? selectedFile.name : 'Aucun fichier sélectionné'
+      };
+
+      // Envoi de l'email
+      await emailjs.send(
+        'service_xze6buo',
+        'template_ufyg20j',
+        data,
+        'sJibSsHqd8Ovlku3z'
+      );
+
+      toast({
+        title: "Candidature envoyée",
+        description: "Nous vous contacterons bientôt !",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      onClose();
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur est survenue lors de l'envoi",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Vérification de la taille du fichier (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Erreur",
+          description: "Le fichier ne doit pas dépasser 10MB",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <ModalOverlay />
+      <ModalContent>
+        <form onSubmit={handleSubmit}>
+          <ModalHeader>Postuler pour : {jobTitle}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Stack spacing={4}>
+              <HStack spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel>Prénom</FormLabel>
+                  <InputGroup>
+                    <InputLeftElement>
+                      <Icon as={FaUser} color="gray.500" />
+                    </InputLeftElement>
+                    <Input name="firstName" placeholder="Votre prénom" />
+                  </InputGroup>
+                </FormControl>
+                <FormControl isRequired>
+                  <FormLabel>Nom</FormLabel>
+                  <InputGroup>
+                    <InputLeftElement>
+                      <Icon as={FaUser} color="gray.500" />
+                    </InputLeftElement>
+                    <Input name="lastName" placeholder="Votre nom" />
+                  </InputGroup>
+                </FormControl>
+              </HStack>
+
+              <FormControl isRequired>
+                <FormLabel>Email</FormLabel>
+                <InputGroup>
+                  <InputLeftElement>
+                    <Icon as={FaEnvelope} color="gray.500" />
+                  </InputLeftElement>
+                  <Input name="email" type="email" placeholder="votre@email.com" />
+                </InputGroup>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Téléphone</FormLabel>
+                <InputGroup>
+                  <InputLeftElement>
+                    <Icon as={FaPhone} color="gray.500" />
+                  </InputLeftElement>
+                  <Input name="phone" type="tel" placeholder="+216 XX XXX XXX" />
+                </InputGroup>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Sujet</FormLabel>
+                <Input name="subject" placeholder="Objet de votre candidature" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Message (optionnel)</FormLabel>
+                <Input name="message" placeholder="Votre message" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>CV</FormLabel>
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileChange}
+                  display="none"
+                  ref={fileInputRef}
+                />
+                <Button
+                  onClick={() => fileInputRef.current.click()}
+                  leftIcon={<FaFile />}
+                  w="full"
+                >
+                  {selectedFile ? selectedFile.name : "Importer votre CV"}
+                </Button>
+              </FormControl>
+            </Stack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onClose}>
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              colorScheme="brand"
+              isLoading={isLoading}
+              loadingText="Envoi en cours..."
+            >
+              Envoyer ma candidature
+            </Button>
+          </ModalFooter>
+        </form>
+      </ModalContent>
+    </Modal>
+  );
+};
+
 // Composant pour les offres d'emploi amélioré
-const JobCard = ({ title, department, location, type, requirements, description }) => (
-  <Box
-    p={6}
-    bg={useColorModeValue('white', 'gray.700')}
-    borderRadius="xl"
-    boxShadow="xl"
-    transition="all 0.3s"
-    _hover={{ 
-      transform: 'translateY(-5px)',
-      boxShadow: '2xl',
-      borderColor: 'brand.500',
-      borderWidth: '2px'
-    }}
-  >
-    <Stack spacing={4}>
-      <Heading size="md" color={useColorModeValue('gray.800', 'white')}>
-        {title}
-      </Heading>
-      <HStack flexWrap="wrap" spacing={2}>
-        <Badge colorScheme="brand">{department}</Badge>
-        <Badge colorScheme="gray">{location}</Badge>
-        <Badge colorScheme="green">{type}</Badge>
-      </HStack>
-      <Text color={useColorModeValue('gray.600', 'gray.300')}>
-        {description}
-      </Text>
-      <Divider />
-      <VStack align="start" spacing={2}>
-        <Text fontWeight="bold">Compétences requises :</Text>
-        {requirements.map((req, index) => (
-          <HStack key={index}>
-            <Icon as={FaLightbulb} color="brand.500" />
-            <Text>{req}</Text>
-          </HStack>
-        ))}
-      </VStack>
-      <Button 
-        colorScheme="brand" 
-        size="md"
-        w="full"
-        leftIcon={<FaBriefcase />}
+const JobCard = ({ title, department, location, type, requirements, description }) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  return (
+    <>
+      <Box
+        p={6}
+        bg={useColorModeValue('white', 'gray.700')}
+        borderRadius="xl"
+        boxShadow="xl"
+        transition="all 0.3s"
+        _hover={{ 
+          transform: 'translateY(-5px)',
+          boxShadow: '2xl',
+          borderColor: 'brand.500',
+          borderWidth: '2px'
+        }}
       >
-        Postuler
-      </Button>
-    </Stack>
-  </Box>
-);
+        <Stack spacing={4}>
+          <Heading size="md" color={useColorModeValue('gray.800', 'white')}>
+            {title}
+          </Heading>
+          <HStack flexWrap="wrap" spacing={2}>
+            <Badge colorScheme="brand">{department}</Badge>
+            <Badge colorScheme="gray">{location}</Badge>
+            <Badge colorScheme="green">{type}</Badge>
+          </HStack>
+          <Text color={useColorModeValue('gray.600', 'gray.300')}>
+            {description}
+          </Text>
+          <Divider />
+          <VStack align="start" spacing={2}>
+            <Text fontWeight="bold">Compétences requises :</Text>
+            {requirements.map((req, index) => (
+              <HStack key={index}>
+                <Icon as={FaLightbulb} color="brand.500" />
+                <Text>{req}</Text>
+              </HStack>
+            ))}
+          </VStack>
+          <Button 
+            colorScheme="brand" 
+            size="md"
+            w="full"
+            leftIcon={<FaBriefcase />}
+            onClick={onOpen}
+          >
+            Postuler
+          </Button>
+        </Stack>
+      </Box>
+      <ApplicationForm isOpen={isOpen} onClose={onClose} jobTitle={title} />
+    </>
+  );
+};
 
 const Careers = () => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const benefits = [
     {
       icon: FaUsers,
@@ -310,11 +538,17 @@ const Careers = () => {
               size="lg"
               colorScheme="brand"
               leftIcon={<FaBriefcase />}
-              onClick={() => window.location.href = 'mailto:careers@collocation.com'}
+              onClick={onOpen}
             >
               Postuler maintenant
             </Button>
           </VStack>
+
+          <ApplicationForm 
+            isOpen={isOpen} 
+            onClose={onClose} 
+            jobTitle="Candidature spontanée" 
+          />
         </Stack>
       </Container>
     </Box>
