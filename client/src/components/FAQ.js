@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -167,13 +168,8 @@ const FAQ = () => {
             </Text>
             <HStack spacing={4}>
               <Button
-                colorScheme="brand"
-                size="lg"
-                leftIcon={<FaHeadset />}
-              >
-                Chat en direct
-              </Button>
-              <Button
+                as={Link}
+                to="/contact"
                 variant="outline"
                 colorScheme="brand"
                 size="lg"
