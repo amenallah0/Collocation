@@ -6,6 +6,12 @@ import Register from './pages/auth/Register';
 import Login from './pages/auth/Login';
 import Profile from './pages/user/Profile';
 import PrivateRoute from './components/PrivateRoute';
+import AboutUs from './components/AboutUs';
+import Careers from './components/Careers';
+import Team from './components/Team';
+import Contact from './components/Contact';
+import FAQ from './components/FAQ';
+import Help from './components/HelpCenter';
 
 const Routes = () => {
   return (
@@ -13,6 +19,12 @@ const Routes = () => {
       <Route path="/" element={<HousingList />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/about" element={<AboutUs />} />
+      <Route path="/careers" element={<Careers />} />
+      <Route path="/team" element={<Team />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/faq" element={<FAQ />} />
+      <Route path="/help" element={<Help />} />
       <Route
         path="/housing/create"
         element={

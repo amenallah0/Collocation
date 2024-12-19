@@ -37,6 +37,7 @@ import { mockHousings } from '../../data/mockHousings';
 import { housingAPI } from '../../services/api';
 import { useToast } from '@chakra-ui/react';
 import { useSearchParams } from 'react-router-dom';
+import Footer from '../layout/Footer';
 
 const HousingList = () => {
   const { isOpen, onToggle } = useDisclosure();
@@ -425,6 +426,7 @@ const HousingList = () => {
           </Button>
         </HStack>
       </VStack>
+      <Footer />
     </Container>
   );
 };
